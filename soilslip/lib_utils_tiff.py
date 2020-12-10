@@ -16,7 +16,35 @@ from osgeo import ogr
 
 from shapely.geometry import shape
 
-from lib_utils_io import create_filename_tmp, create_darray_2d
+from lib_utils_io import create_filename_tmp, create_darray_2d, write_file_tif
+# -------------------------------------------------------------------------------------
+
+
+# -------------------------------------------------------------------------------------
+# Method to save data values in geotiff format
+def save_file_tiff(file_name, file_data, file_geo_x, file_geo_y, file_metadata=None, file_epsg_code='EPSG:32632'):
+
+    if file_metadata is None:
+        file_metadata = {'description': 'data'}
+
+    file_data_height, file_data_width = file_data.shape
+
+    file_geo_x_west = np.min(file_geo_x)
+    file_geo_x_east = np.max(file_geo_x)
+    file_geo_y_south = np.min(file_geo_y)
+    file_geo_y_north = np.max(file_geo_y)
+
+    file_data_transform = rasterio.transform.from_bounds(
+        file_geo_x_west, file_geo_y_south, file_geo_x_east, file_geo_y_north,
+        file_data_width, file_data_height)
+
+    if not isinstance(file_data, list):
+        file_data = [file_data]
+
+    write_file_tif(file_name, file_data,
+                   file_data_width, file_data_height, file_data_transform, file_epsg_code,
+                   file_metadata=file_metadata)
+
 # -------------------------------------------------------------------------------------
 
 

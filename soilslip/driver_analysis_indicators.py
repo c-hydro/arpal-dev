@@ -18,7 +18,8 @@ import xarray as xr
 
 from lib_utils_generic import get_dict_nested_value, find_maximum_delta, split_time_parts
 from lib_utils_system import fill_tags2string, make_folder
-from lib_utils_io import write_obj
+from lib_utils_io import write_obj, create_dset
+from lib_utils_tiff import read_file_tiff
 
 # Debug
 import matplotlib.pylab as plt
@@ -48,6 +49,7 @@ class DriverAnalysis:
 
         self.file_name_tag = 'file_name'
         self.folder_name_tag = 'folder_name'
+        self.region_tag = 'region'
 
         self.flag_forcing_data_rain = flag_forcing_data_rain
         self.flag_forcing_data_sm = flag_forcing_data_sm
@@ -59,7 +61,7 @@ class DriverAnalysis:
         self.file_list_rain = file_list_rain
         self.file_list_sm = file_list_sm
 
-        self.geo_data_region = geo_data_region
+        self.geo_data_region = geo_data_region[self.region_tag]
         self.geo_data_alert_area = geo_data_alert_area
 
         self.alg_template_tags = alg_template_tags
@@ -252,7 +254,28 @@ class DriverAnalysis:
 
                 if file_analysis:
 
-                    file_data_raw = xr.open_mfdataset(file_list_check, combine='by_coords')
+                    if file_list_check[0].endswith('.nc'):
+                        file_data_raw = xr.open_mfdataset(file_list_check, combine='by_coords')
+                    elif file_list_check[0].endswith('.tiff'):
+
+                        if file_list_check.__len__() == 1:
+                            data_2d, proj, geotrans = read_file_tiff(file_list_check[0])
+                            file_data_raw = create_dset(
+                                data_2d, mask_2d, geox_out_2d, geoy_out_2d,
+                                var_data_time=time_step, var_data_name=var_name,
+                                var_geo_name='mask', var_data_attrs=None, var_geo_attrs=None,
+                                coord_name_x='longitude', coord_name_y='latitude', coord_name_time='time',
+                                dim_name_x='west_east', dim_name_y='south_north', dim_name_time='time',
+                                dims_order_2d=None, dims_order_3d=None)
+
+                        else:
+                            logging.error(' ===> Length of file list is not allowed')
+                            raise NotImplementedError('Case is not implemented yet')
+
+                    else:
+                        logging.error(' ===> Filename format is not allowed')
+                        raise NotImplementedError('Format is not implemented yet')
+
                     file_data_mean = file_data_raw[var_name].mean(dim=['south_north', 'west_east'])
 
                     file_time = list(file_data_raw.time.values)
@@ -325,8 +348,14 @@ class DriverAnalysis:
         logging.info(' ----> Compute rain analysis [' + str(self.time_step) + '] ... ')
 
         time_step = self.time_step
+        geo_data_region = self.geo_data_region
         geo_data_alert_area = self.geo_data_alert_area
         group_data_alert_area = self.structure_data_group
+
+        geoy_region_1d = geo_data_region['south_north'].values
+        geox_region_1d = geo_data_region['west_east'].values
+        mask_region_2d = geo_data_region.values
+        geox_region_2d, geoy_region_2d = np.meshgrid(geox_region_1d, geoy_region_1d)
 
         group_analysis = {}
         for (group_data_key, group_data_items), geo_data_dframe in zip(group_data_alert_area.items(),
@@ -367,7 +396,36 @@ class DriverAnalysis:
                         break
 
                 if file_analysis:
-                    file_obj = xr.open_mfdataset(file_list, combine='by_coords')
+
+                    if file_list[0].endswith('.nc'):
+                        file_obj = xr.open_mfdataset(file_list, combine='by_coords')
+                    elif file_list[0].endswith('.tiff'):
+
+                        if file_list.__len__() > 1:
+
+                            data_3d = np.zeros(shape=[geox_region_2d.shape[0], geoy_region_2d.shape[1], file_list.__len__()])
+                            data_3d[:, :, :] = np.nan
+                            data_time = []
+                            for file_id, (file_step, time_step) in enumerate(zip(file_list, time_range)):
+                                data_2d, proj, geotrans = read_file_tiff(file_step)
+                                data_3d[:, :, file_id] = data_2d
+                                data_time.append(time_step)
+
+                            file_obj = create_dset(
+                                data_3d, mask_region_2d, geox_region_2d, geoy_region_2d,
+                                var_data_time=data_time, var_data_name=var_name,
+                                var_geo_name='mask', var_data_attrs=None, var_geo_attrs=None,
+                                coord_name_x='longitude', coord_name_y='latitude', coord_name_time='time',
+                                dim_name_x='west_east', dim_name_y='south_north', dim_name_time='time',
+                                dims_order_2d=None, dims_order_3d=None)
+
+                        else:
+                            logging.error(' ===> Length of file list is not allowed')
+                            raise NotImplementedError('Case is not implemented yet')
+
+                    else:
+                        logging.error(' ===> Filename format is not allowed')
+                        raise NotImplementedError('Format is not implemented yet')
 
                     values_mean = file_obj[var_name].mean(dim=['south_north', 'west_east']).values
                     analysis_df = pd.DataFrame(index=time_range, data=values_mean, columns=[var_name]).fillna(value=pd.NA)

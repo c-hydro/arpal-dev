@@ -19,6 +19,7 @@ from lib_utils_geo import get_file_raster, convert_cn2s
 from lib_utils_io import read_file_json, read_file_csv, read_file_binary, \
     read_obj, write_obj, create_darray_2d, create_dset, write_dset, unzip_filename
 from lib_utils_system import fill_tags2string, make_folder, change_extension
+from lib_utils_tiff import save_file_tiff
 
 # Debug
 import matplotlib.pylab as plt
@@ -93,6 +94,9 @@ class DriverForcing:
         self.var_name_y = 'south_north'
 
         self.flag_ancillary_updating = flag_ancillary_updating
+
+        self.file_metadata = {'description': 'soil_moisture'}
+        self.file_epsg_code = 'EPSG:4326'
 
         self.file_path_processed = []
     # -------------------------------------------------------------------------------------
@@ -332,10 +336,28 @@ class DriverForcing:
                     folder_name_ancillary, file_name_ancillary = os.path.split(file_path_ancillary)
                     make_folder(folder_name_ancillary)
 
-                    write_dset(
-                        file_path_ancillary,
-                        dset_merge, dset_mode='w', dset_engine='h5netcdf', dset_compression=0, dset_format='NETCDF4',
-                        dim_key_time='time', no_data=-9999.0)
+                    if file_path_ancillary.endswith('.nc'):
+
+                        write_dset(
+                            file_path_ancillary,
+                            dset_merge, dset_mode='w', dset_engine='h5netcdf', dset_compression=0, dset_format='NETCDF4',
+                            dim_key_time='time', no_data=-9999.0)
+
+                        logging.info(' ------> Save grid datasets ... DONE. [NETCDF]')
+
+                    elif file_path_ancillary.endswith('.tiff'):
+
+                        save_file_tiff(file_path_ancillary,
+                                       np.flipud(dset_merge[var_name].values),
+                                       geo_x_ref.values, np.flipud(geo_y_ref.values),
+                                       file_metadata=self.file_metadata, file_epsg_code=self.file_epsg_code)
+
+                        logging.info(' ------> Save grid datasets ... DONE. [GEOTIFF]')
+
+                    else:
+                        logging.info(' ------> Save grid datasets ... FAILED')
+                        logging.error(' ===> Filename format is not allowed')
+                        raise NotImplementedError('Format is not implemented yet')
 
                     self.file_path_processed.append(file_path_ancillary)
 

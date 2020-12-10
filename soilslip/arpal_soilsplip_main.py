@@ -2,8 +2,8 @@
 """
 ARPAL Processing Tool - SOIL SLIPS
 
-__date__ = '20200515'
-__version__ = '1.0.0'
+__date__ = '20201125'
+__version__ = '1.1.0'
 __author__ =
         'Fabio Delogu (fabio.delogu@cimafoundation.org',
         'Michele Cicoria (michele.cicoria@arpal.liguria.it)',
@@ -15,6 +15,7 @@ General command line:
 python3 ARPAL_SoilSlips_Main.py -settings_file configuration.json -time "YYYY-MM-DD HH:MM"
 
 Version(s):
+20201125 (1.1.0) --> Update of reader and writer method for rain and soil moisture variables
 20200515 (1.0.0) --> Beta release
 """
 
@@ -40,8 +41,8 @@ from lib_utils_time import set_time
 
 # -------------------------------------------------------------------------------------
 # Algorithm information
-alg_version = '1.0.0'
-alg_release = '2020-05-15'
+alg_version = '1.1.0'
+alg_release = '2020-11-25'
 alg_name = 'SOIL SLIPS MAIN'
 # Algorithm parameter(s)
 time_format = '%Y-%m-%d %H:%M'
@@ -123,7 +124,7 @@ def main():
                 group_data=data_settings['algorithm']['ancillary']['group'],
                 alg_template_tags=data_settings['algorithm']['template'],
                 flag_ancillary_updating=data_settings['algorithm']['flags']['updating_dynamic_ancillary_rain'])
-            #driver_data_forcing_rain.organize_forcing()
+            driver_data_forcing_rain.organize_forcing()
 
             # Soil moisture datasets
             driver_data_forcing_sm = DriverForcingSM(
@@ -137,7 +138,7 @@ def main():
                 group_data=data_settings['algorithm']['ancillary']['group'],
                 alg_template_tags=data_settings['algorithm']['template'],
                 flag_ancillary_updating=data_settings['algorithm']['flags']['updating_dynamic_ancillary_sm'])
-            #driver_data_forcing_sm.organize_forcing()
+            driver_data_forcing_sm.organize_forcing()
 
             # Analysis datasets to define indicators
             driver_analysis_indicators = DriverAnalysisIndicators(
@@ -152,8 +153,8 @@ def main():
                 group_data=data_settings['algorithm']['ancillary']['group'],
                 alg_template_tags=data_settings['algorithm']['template'],
                 flag_dest_updating=data_settings['algorithm']['flags']['updating_dynamic_indicators'])
-            analysis_data_sm = driver_analysis_indicators.organize_analysis_sm()
             analysis_data_rain = driver_analysis_indicators.organize_analysis_rain()
+            analysis_data_sm = driver_analysis_indicators.organize_analysis_sm()
 
             driver_analysis_indicators.save_analysis(analysis_data_sm, analysis_data_rain, geo_point_collection)
         # -------------------------------------------------------------------------------------

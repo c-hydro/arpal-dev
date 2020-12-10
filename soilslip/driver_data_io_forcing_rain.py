@@ -18,6 +18,7 @@ from lib_utils_generic import get_dict_nested_value, find_maximum_delta, split_t
 from lib_utils_io import read_file_json, read_file_csv, read_obj, write_obj, create_darray_2d, create_dset, write_dset
 from lib_utils_system import fill_tags2string, make_folder
 from lib_analysis_interpolation_point import interp_point2grid
+from lib_utils_tiff import save_file_tiff
 
 # Debug
 import matplotlib.pylab as plt
@@ -69,6 +70,16 @@ class DriverForcing:
         self.columns_src = ['code', 'name', 'longitude', 'latitude', 'time', 'data']
         self.column_ancillary = ['name', 'longitude', 'latitude', 'data']
 
+        self.file_columns_sep = ';'
+        self.file_scale_factor_longitude = 10
+        self.file_scale_factor_latitude = 10
+        self.file_metadata = {'description': 'rain'}
+        self.file_epsg_code = 'EPSG:4326'
+
+        self.month_lut = {'01': 'gennaio', '02': 'febbraio', '03': 'marzo', '04': 'aprile', '05': 'maggio',
+                          '06': 'giugno', '07': 'luglio', '08': 'agosto', '09': 'settembre', '10': 'ottobre',
+                          '11': 'novembre', '12': 'dicembre'}
+
         self.time_data = time_data[self.flag_forcing_data]
         self.time_range = self.collect_file_time()
 
@@ -87,6 +98,7 @@ class DriverForcing:
         self.flag_ancillary_updating = flag_ancillary_updating
 
         self.file_path_processed = []
+
     # -------------------------------------------------------------------------------------
 
     # -------------------------------------------------------------------------------------
@@ -128,10 +140,21 @@ class DriverForcing:
     # Method to collect ancillary file
     def collect_file_list(self, folder_name_raw, file_name_raw):
 
+        month_lut = self.month_lut
+
         file_name_list = []
         for datetime_step in self.time_range:
 
+            datemonth_step = str(datetime_step.month).zfill(2)
+
+            if datemonth_step in list(month_lut.keys()):
+                namemonth_step = month_lut[datemonth_step]
+            else:
+                logging.error(' ===> Month key is not valid to get month name')
+                raise IOError('Check your lut and passed month string')
+
             alg_template_values_step = {
+                'month_name': namemonth_step,
                 'source_rain_datetime': datetime_step, 'source_rain_sub_path_time': datetime_step,
                 'ancillary_rain_datetime': datetime_step, 'ancillary_rain_sub_path_time': datetime_step,
                 'destination_rain_datetime': datetime_step, 'destination_rain_sub_path_time': datetime_step}
@@ -163,7 +186,8 @@ class DriverForcing:
 
         file_path_src_def = os.path.join(folder_name_src_def, file_name_src_def)
         if os.path.exists(file_path_src_def):
-            file_dframe = read_file_csv(file_path_src_def, file_header=self.columns_src)
+            file_dframe = read_file_csv(file_path_src_def, file_header=self.columns_src,
+                                        scale_factor_longitude=10, scale_factor_latitude=10)
         else:
             file_dframe = None
             logging.warning(' ===> File datasets of rain weather stations is not available.')
@@ -195,7 +219,10 @@ class DriverForcing:
             if not os.path.exists(file_path_ancillary):
 
                 if os.path.exists(file_path_src):
-                    file_dframe = read_file_csv(file_path_src, datetime_step, file_header=self.columns_src)
+                    file_dframe = read_file_csv(file_path_src, datetime_step, file_header=self.columns_src,
+                                                file_sep=self.file_columns_sep,
+                                                scale_factor_longitude=self.file_scale_factor_longitude,
+                                                scale_factor_latitude=self.file_scale_factor_latitude)
                     if file_dframe is not None:
                         file_time_src = file_dframe.index.unique()
                     else:
@@ -224,28 +251,42 @@ class DriverForcing:
 
                     logging.info(' ------> Interpolate points to grid datasets ... ')
 
-                    logging.info(' ------> Save grid datasets ... ')
-                    dset_out = create_dset(
-                        data_out_2d,
-                        mask_2d, geox_out_2d, geoy_out_2d,
-                        var_data_time=datetime_step,
-                        var_data_name=var_name,
-                        var_geo_name='mask', var_data_attrs=None, var_geo_attrs=None,
-                        coord_name_x='longitude', coord_name_y='latitude', coord_name_time='time',
-                        dim_name_x='west_east', dim_name_y='south_north', dim_name_time='time',
-                        dims_order_2d=None, dims_order_3d=None)
-
                     folder_name_dst, file_name_dst = os.path.split(file_path_ancillary)
                     make_folder(folder_name_dst)
 
-                    write_dset(
-                        file_path_ancillary,
-                        dset_out, dset_mode='w', dset_engine='h5netcdf', dset_compression=0, dset_format='NETCDF4',
-                        dim_key_time='time', no_data=-9999.0)
+                    logging.info(' ------> Save grid datasets ... ')
+                    if file_path_ancillary.endswith('.nc'):
+
+                        dset_out = create_dset(
+                            data_out_2d,
+                            mask_2d, geox_out_2d, geoy_out_2d,
+                            var_data_time=datetime_step,
+                            var_data_name=var_name,
+                            var_geo_name='mask', var_data_attrs=None, var_geo_attrs=None,
+                            coord_name_x='longitude', coord_name_y='latitude', coord_name_time='time',
+                            dim_name_x='west_east', dim_name_y='south_north', dim_name_time='time',
+                            dims_order_2d=None, dims_order_3d=None)
+
+                        write_dset(
+                            file_path_ancillary,
+                            dset_out, dset_mode='w', dset_engine='h5netcdf', dset_compression=0, dset_format='NETCDF4',
+                            dim_key_time='time', no_data=-9999.0)
+
+                        logging.info(' ------> Save grid datasets ... DONE. [NETCDF]')
+
+                    elif file_path_ancillary.endswith('.tiff'):
+
+                        save_file_tiff(file_path_ancillary, data_out_2d, geox_out_2d, geoy_out_2d,
+                                       file_metadata=self.file_metadata, file_epsg_code=self.file_epsg_code)
+
+                        logging.info(' ------> Save grid datasets ... DONE. [GEOTIFF]')
+
+                    else:
+                        logging.info(' ------> Save grid datasets ... FAILED')
+                        logging.error(' ===> Filename format is not allowed')
+                        raise NotImplementedError('Format is not implemented yet')
 
                     self.file_path_processed.append(file_path_ancillary)
-
-                    logging.info(' ------> Save grid datasets ... DONE')
 
                     logging.info(' -----> TimeStep: ' + str(datetime_step) + ' ... DONE')
 

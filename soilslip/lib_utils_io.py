@@ -108,16 +108,22 @@ def write_file_csv(file_name, file_df, file_sep=',', file_header=True, file_inde
 
 # -------------------------------------------------------------------------------------
 # Method to read file csv
-def read_file_csv(file_name, file_time=None, file_header=None,
+def read_file_csv(file_name, file_time=None, file_header=None, file_format=None,
                   file_sep=',', file_skiprows=1, file_time_format='%Y%m%d%H%M',
                   scale_factor_longitude=100000, scale_factor_latitude=100000, scale_factor_data=0.1):
 
     if file_header is None:
         file_header = ['code', 'name', 'longitude', 'latitude', 'time', 'data']
-
+    if file_format is None:
+        file_format = {'code': str, 'name': str, 'longitude': float, 'latitude': float, 'data': float}
+        
     file_dframe = pd.read_table(file_name, sep=file_sep, names=file_header, skiprows=file_skiprows)
     file_dframe = file_dframe.reset_index()
     file_dframe = file_dframe.set_index('time')
+
+    file_dframe = file_dframe.replace(to_replace=',', value='.', regex=True)
+
+    file_dframe = file_dframe.astype(file_format)
 
     file_dframe.index = pd.to_datetime(file_dframe.index, format=file_time_format)
     file_dframe['longitude'] = file_dframe['longitude'] / scale_factor_longitude
@@ -355,8 +361,16 @@ def create_dset(var_data_values,
     if not isinstance(var_data_time, list):
         var_data_time = [var_data_time]
 
-    var_dset = xr.Dataset(coords={coord_name_time: ([dim_name_time], var_data_time)})
-    var_dset.coords[coord_name_time] = var_dset.coords[coord_name_time].astype('datetime64[ns]')
+    if var_data_values.shape.__len__() == 2:
+        var_dset = xr.Dataset(coords={coord_name_time: ([dim_name_time], var_data_time)})
+        var_dset.coords[coord_name_time] = var_dset.coords[coord_name_time].astype('datetime64[ns]')
+    elif var_data_values.shape.__len__() == 3:
+        var_dset = xr.Dataset(coords={coord_name_x: ([dim_name_y, dim_name_x], var_geo_x_tmp),
+                                      coord_name_y: ([dim_name_y, dim_name_x], np.flipud(var_geo_y_tmp)),
+                                      coord_name_time: ([dim_name_time], var_data_time)})
+        var_dset.coords[coord_name_time] = var_dset.coords[coord_name_time].astype('datetime64[ns]')
+    else:
+        raise NotImplemented
 
     var_da_terrain = xr.DataArray(np.flipud(var_geo_values),  name=var_geo_name,
                                   dims=dims_order_2d,

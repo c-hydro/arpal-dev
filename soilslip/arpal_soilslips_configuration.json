@@ -93,14 +93,15 @@
     },
     "template": {
       "domain_name": "string_domain",
+      "month_name": "string_month",
       "alert_area_name": "string_alert_area",
       "var_rain": "string_var_rain",
       "var_sm": "string_var_sm",
       "basin_name": "string_basin",
       "run_datetime": "%Y%m%d",
       "run_sub_path_time": "%Y/%m/%d/",
-      "source_rain_sub_path_time": "%Y/%m/%d/",
-      "source_rain_datetime": "%Y%m%d%H%M",
+      "source_rain_sub_path_time": "%Y",
+      "source_rain_datetime": "%Y",
       "source_sm_sub_path_time": "%Y/%m/%d/",
       "source_sm_datetime": "%Y%m%d%H%M",
       "ancillary_rain_sub_path_time": "%Y/%m/%d/",
@@ -181,44 +182,47 @@
       },
       "source": {
         "rain_data": {
-          "folder_name": "/home/fabio/Desktop/PyCharm_Workspace/arpal-ws/soilslip/dynamic/rain/",
-          "file_name": "RAINC_DATA_1H_Liguria_20181001-20181130.csv"
+          "__comment__": "RAINC_DATA_1H_Liguria_20181001-20181130.csv",
+          "folder_name": "/home/fabio/Desktop/PyCharm_Workspace/arpal-ws/soilslip/dynamic/source/rain/{source_rain_sub_path_time}",
+          "file_name": "{month_name}_{source_rain_datetime}.csv"
         },
         "soil_moisture_data": {
-          "folder_name": "/home/fabio/Desktop/PyCharm_Workspace/arpal-ws/soilslip/dynamic/soil_moisture/{basin_name}Domain/",
+          "folder_name": "/home/fabio/Desktop/PyCharm_Workspace/arpal-ws/soilslip/dynamic/source/soil_moisture/{basin_name}Domain/",
           "file_name": "{basin_name}DomainV_{source_sm_datetime}.gz"
         }
       },
       "ancillary": {
         "rain_data": {
-          "folder_name": "/home/fabio/Desktop/PyCharm_Workspace/arpal-ws/soilslip/dynamic/rain/{ancillary_rain_sub_path_time}",
-          "file_name": "rain_{ancillary_rain_datetime}.nc"
+          "__comment__": "file format allowed: nc, tiff",
+          "folder_name": "/home/fabio/Desktop/PyCharm_Workspace/arpal-ws/soilslip/dynamic/ancillary/rain/{ancillary_rain_sub_path_time}",
+          "file_name": "rain_{ancillary_rain_datetime}.tiff"
         },
         "soil_moisture_data": {
-          "folder_name": "/home/fabio/Desktop/PyCharm_Workspace/arpal-ws/soilslip/dynamic/soil_moisture/{ancillary_sm_sub_path_time}",
-          "file_name": "sm_{alert_area_name}_{ancillary_sm_datetime}.nc"
+          "__comment__": "file format allowed: nc, tiff",
+          "folder_name": "/home/fabio/Desktop/PyCharm_Workspace/arpal-ws/soilslip/dynamic/ancillary/soil_moisture/{ancillary_sm_sub_path_time}",
+          "file_name": "sm_{alert_area_name}_{ancillary_sm_datetime}.tiff"
         }
       },
       "destination": {
         "indicators_data" : {
-          "folder_name": "/home/fabio/Desktop/PyCharm_Workspace/arpal-ws/soilslip/dynamic/analysis/{destination_indicators_sub_path_time}",
+          "folder_name": "/home/fabio/Desktop/PyCharm_Workspace/arpal-ws/soilslip/dynamic/outcome/indicators/{destination_indicators_sub_path_time}",
           "file_name": "indicators_{destination_indicators_datetime}_{alert_area_name}.workspace"
         },
         "scenarios_data" : {
-          "folder_name": "/home/fabio/Desktop/PyCharm_Workspace/arpal-ws/soilslip/analysis/scenarios/{run_sub_path_time}",
+          "folder_name": "/home/fabio/Desktop/PyCharm_Workspace/arpal-ws/soilslip/dynamic/outcome/scenarios/{run_sub_path_time}",
           "file_name": "scenarios_{destination_scenarios_datetime_from}_{destination_scenarios_datetime_to}_{alert_area_name}.csv"
         },
         "scenarios_graph" : {
           "sm2event_graph": {
-            "folder_name": "/home/fabio/Desktop/PyCharm_Workspace/arpal-ws/soilslip/analysis/scenarios/{run_sub_path_time}",
+            "folder_name": "/home/fabio/Desktop/PyCharm_Workspace/arpal-ws/soilslip/dynamic/outcome/scenarios/{run_sub_path_time}",
             "file_name": "scenarios_sm_{destination_scenarios_datetime_from}_{destination_scenarios_datetime_to}_{alert_area_name}.tiff"
           },
           "rain2sm_graph": {
-            "folder_name": "/home/fabio/Desktop/PyCharm_Workspace/arpal-ws/soilslip/analysis/scenarios/{run_sub_path_time}",
+            "folder_name": "/home/fabio/Desktop/PyCharm_Workspace/arpal-ws/soilslip/dynamic/outcome/scenarios/{run_sub_path_time}",
             "file_name": "scenarios_rain2sm_{destination_scenarios_datetime_from}_{destination_scenarios_datetime_to}_{alert_area_name}_sm{var_sm}_rain{var_rain}.tiff"
           },
           "rain2event_graph": {
-            "folder_name": "/home/fabio/Desktop/PyCharm_Workspace/arpal-ws/soilslip/analysis/scenarios/{run_sub_path_time}",
+            "folder_name": "/home/fabio/Desktop/PyCharm_Workspace/arpal-ws/soilslip/dynamic/outcome/scenarios/{run_sub_path_time}",
             "file_name": "scenarios_rain_{destination_scenarios_datetime_from}_{destination_scenarios_datetime_to}_{alert_area_name}_sm{var_sm}_rain{var_rain}.tiff"
           }
         }
