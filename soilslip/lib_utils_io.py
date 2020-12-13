@@ -116,12 +116,35 @@ def read_file_csv(file_name, file_time=None, file_header=None, file_format=None,
         file_header = ['code', 'name', 'longitude', 'latitude', 'time', 'data']
     if file_format is None:
         file_format = {'code': str, 'name': str, 'longitude': float, 'latitude': float, 'data': float}
-        
+
     file_dframe = pd.read_table(file_name, sep=file_sep, names=file_header, skiprows=file_skiprows)
-    file_dframe = file_dframe.reset_index()
-    file_dframe = file_dframe.set_index('time')
 
     file_dframe = file_dframe.replace(to_replace=',', value='.', regex=True)
+    file_dframe = file_dframe.replace(to_replace=':', value=file_sep, regex=True)
+
+    file_dframe = file_dframe.dropna(axis='columns')
+
+    if (file_dframe.columns.__len__() == 1) and (file_dframe.columns.__len__() != file_header.__len__()):
+
+        logging.warning(' ===> The format of csv file ' + file_name +
+                        ' is not in the expected format. Try to correct due to wrong file delimiter')
+
+        file_cols_name = list(file_dframe.columns)[0]
+        file_n_expected = file_header.__len__()
+
+        file_dframe_tmp = file_dframe[file_cols_name].str.split(file_sep, file_n_expected, expand=True)
+        file_dframe_tmp.columns = file_header
+
+        file_dframe = deepcopy(file_dframe_tmp)
+
+    elif file_dframe.columns.__len__() == file_header.__len__():
+        pass
+    else:
+        logging.error(' ===> Parser of csv file ' + file_name + ' failed')
+        raise IOError('Check the format of csv file')
+
+    file_dframe = file_dframe.reset_index()
+    file_dframe = file_dframe.set_index('time')
 
     file_dframe = file_dframe.astype(file_format)
 
