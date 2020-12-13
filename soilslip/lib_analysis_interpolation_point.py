@@ -32,8 +32,6 @@ def interp_point2grid(data_in_1d, geox_in_1d, geoy_in_1d, geox_out_2d, geoy_out_
                       interp_method='nearest', interp_option=None,
                       folder_tmp=None, var_name_data='values', var_name_geox='x', var_name_geoy='y'):
 
-    folder_tmp = '/home/fabio/Desktop/PyCharm_Workspace/arpal-master/soilslip/cmp/'
-
     # Define layer name (using a random string)
     var_name_layer = random_string()
 

@@ -231,14 +231,10 @@
     "log": {
       "folder_name": "/home/fabio/Desktop/PyCharm_Workspace/arpal-ws/log/soil_slips/",
       "file_name": "arpal_soil_slips_log_local.txt"
-      },
-    "library": {
-      "folder_name": "",
-      "file_name": ""
     },
-    "bin": {
-      "folder_name": "",
-      "file_name": ""
+    "tmp": {
+      "folder_name": "/home/fabio/Desktop/PyCharm_Workspace/arpal-ws/soilslip/dynamic/tmp/",
+      "file_name": null
     }
   },
   "time": {

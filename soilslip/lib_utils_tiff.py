@@ -17,6 +17,9 @@ from osgeo import ogr
 from shapely.geometry import shape
 
 from lib_utils_io import create_filename_tmp, create_darray_2d, write_file_tif
+
+# Default settings
+proj_default_wkt='GEOGCS["WGS 84",DATUM["WGS_1984",SPHEROID["WGS 84",6378137,298.257223563,AUTHORITY["EPSG","7030"]],AUTHORITY["EPSG","6326"]],PRIMEM["Greenwich",0,AUTHORITY["EPSG","8901"]],UNIT["degree",0.0174532925199433,AUTHORITY["EPSG","9122"]],AUTHORITY["EPSG","4326"]]'
 # -------------------------------------------------------------------------------------
 
 
@@ -61,7 +64,10 @@ def read_file_tiff(file_name):
             transform = dset.transform
             data = dset.read()
             values = data[0, :, :]
-            proj = dset.crs.wkt
+            if dset.crs is None:
+                proj = proj_default_wkt
+            else:
+                proj = dset.crs.wkt
             geotrans = dset.transform
 
             decimal_round = 7

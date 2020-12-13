@@ -31,7 +31,7 @@ class DriverForcing:
 
     # -------------------------------------------------------------------------------------
     # Initialize class
-    def __init__(self, time_step, src_dict, ancillary_dict, dst_dict,
+    def __init__(self, time_step, src_dict, ancillary_dict, dst_dict, tmp_dict=None,
                  alg_ancillary=None, alg_template_tags=None,
                  time_data=None, geo_data=None, group_data=None,
                  flag_forcing_data='rain_data',
@@ -97,6 +97,18 @@ class DriverForcing:
 
         self.flag_ancillary_updating = flag_ancillary_updating
 
+        self.tmp_dict = tmp_dict
+        self.file_name_tmp_raw = tmp_dict[self.file_name_tag]
+        self.folder_name_tmp_raw = tmp_dict[self.folder_name_tag]
+
+        if self.folder_name_tmp_raw is not None:
+            self.file_path_tmp_list = self.collect_file_list(
+                self.folder_name_tmp_raw, self.file_name_tmp_raw)
+
+            self.folder_tmp = list(set(self.file_path_tmp_list))[0]
+        else:
+            self.folder_tmp = None
+
         self.file_path_processed = []
 
     # -------------------------------------------------------------------------------------
@@ -161,9 +173,12 @@ class DriverForcing:
 
             folder_name_def = fill_tags2string(
                 folder_name_raw, self.alg_template_tags, alg_template_values_step)
-            file_name_def = fill_tags2string(
-                file_name_raw, self.alg_template_tags, alg_template_values_step)
-            file_path_def = os.path.join(folder_name_def, file_name_def)
+            if file_name_raw is not None:
+                file_name_def = fill_tags2string(
+                    file_name_raw, self.alg_template_tags, alg_template_values_step)
+                file_path_def = os.path.join(folder_name_def, file_name_def)
+            else:
+                file_path_def = folder_name_def
 
             file_name_list.append(file_path_def)
 
@@ -245,7 +260,8 @@ class DriverForcing:
                     data_out_2d = interp_point2grid(
                         data_in_1d, geox_in_1d, geoy_in_1d, geox_out_2d, geoy_out_2d, epsg_code='4326',
                         interp_no_data=-9999.0, interp_radius_x=0.2, interp_radius_y=0.2,
-                        interp_method='idw', var_name_data='values', var_name_geox='x', var_name_geoy='y')
+                        interp_method='idw', var_name_data='values', var_name_geox='x', var_name_geoy='y',
+                        folder_tmp=self.folder_tmp)
 
                     data_out_2d[mask_2d == 0] = np.nan
 

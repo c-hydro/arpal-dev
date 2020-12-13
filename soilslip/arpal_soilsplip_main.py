@@ -119,6 +119,7 @@ def main():
                 src_dict=data_settings['data']['dynamic']['source'],
                 ancillary_dict=data_settings['data']['dynamic']['ancillary'],
                 dst_dict=data_settings['data']['dynamic']['destination'],
+                tmp_dict=data_settings['data']['tmp'],
                 time_data=data_settings['data']['dynamic']['time'],
                 geo_data=driver_data_geo_grid.dset_geo_region,
                 group_data=data_settings['algorithm']['ancillary']['group'],
@@ -138,7 +139,7 @@ def main():
                 group_data=data_settings['algorithm']['ancillary']['group'],
                 alg_template_tags=data_settings['algorithm']['template'],
                 flag_ancillary_updating=data_settings['algorithm']['flags']['updating_dynamic_ancillary_sm'])
-            driver_data_forcing_sm.organize_forcing()
+            #driver_data_forcing_sm.organize_forcing()
 
             # Analysis datasets to define indicators
             driver_analysis_indicators = DriverAnalysisIndicators(
