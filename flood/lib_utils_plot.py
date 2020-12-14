@@ -32,6 +32,7 @@ from mpl_toolkits.axes_grid1.axes_divider import make_axes_locatable
 
 logging.getLogger('rasterio').setLevel(logging.WARNING)
 logging.getLogger('matplotlib').setLevel(logging.WARNING)
+logging.getLogger('PIL').setLevel(logging.WARNING)
 # -------------------------------------------------------------------------------------
 
 

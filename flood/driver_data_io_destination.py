@@ -179,51 +179,75 @@ class DriverScenario:
     # -------------------------------------------------------------------------------------
 
     # -------------------------------------------------------------------------------------
-    # Method to plot scenario map
-    def plot_scenario_map(self, scenario_map_collection, scenario_info_collection):
+    # Method to dump scenario map
+    def dump_scenario_map(self, scenario_map_collection, scenario_info_collection):
 
+        time_run = self.time_run
         time_stamp = self.time_now
         time_string = self.time_now.strftime(format='%Y-%m-%d %H:%M')
         geo_data_collection = self.geo_data_collection
 
+        logging.info(' --> Dump scenario maps [' + str(time_run) + '] ... ')
+
         for domain_name_step in self.domain_name_list:
+
+            logging.info(' ---> Domain ' + domain_name_step + ' ... ')
 
             domain_geo_collection = geo_data_collection[domain_name_step]
             domain_info_collection = scenario_info_collection[domain_name_step]
             domain_map_collection = scenario_map_collection[domain_name_step]
 
-            file_path_scenario_data = self.define_file_scenario(
-                time_stamp, self.folder_name_scenario_data, self.file_name_scenario_data, domain_name_step)
-            file_path_scenario_plot_tiff = self.define_file_scenario(
-                time_stamp, self.folder_name_scenario_plot_tiff, self.file_name_scenario_plot_tiff, domain_name_step)
-            file_path_scenario_plot_png = self.define_file_scenario(
-                time_stamp, self.folder_name_scenario_plot_png, self.file_name_scenario_plot_png, domain_name_step)
+            if domain_map_collection is not None:
 
-            domain_geo_data = domain_geo_collection[self.domain_scenario_area_tag]
-            domain_geo_x = domain_geo_collection[self.domain_scenario_grid_x_tag]
-            domain_geo_y = domain_geo_collection[self.domain_scenario_grid_y_tag]
+                file_path_scenario_data = self.define_file_scenario(
+                    time_stamp, self.folder_name_scenario_data, self.file_name_scenario_data, domain_name_step)
+                file_path_scenario_plot_tiff = self.define_file_scenario(
+                    time_stamp, self.folder_name_scenario_plot_tiff, self.file_name_scenario_plot_tiff, domain_name_step)
+                file_path_scenario_plot_png = self.define_file_scenario(
+                    time_stamp, self.folder_name_scenario_plot_png, self.file_name_scenario_plot_png, domain_name_step)
 
-            folder_name_scenario_data, file_name_scenario_data = os.path.split(file_path_scenario_data)
-            make_folder(folder_name_scenario_data)
+                domain_geo_data = domain_geo_collection[self.domain_scenario_area_tag]
+                domain_geo_x = domain_geo_collection[self.domain_scenario_grid_x_tag]
+                domain_geo_y = domain_geo_collection[self.domain_scenario_grid_y_tag]
 
-            domain_info_collection['scenario_name'] = domain_name_step
-            domain_info_collection['scenario_time'] = time_string
-            save_file_json(file_path_scenario_data, domain_info_collection)
+                domain_info_collection['scenario_name'] = domain_name_step
+                domain_info_collection['scenario_time'] = time_string
 
-            folder_name_scenario_plot_png, file_name_scenario_plot_png = os.path.split(file_path_scenario_plot_png)
-            make_folder(folder_name_scenario_plot_png)
+                # Save information in json file
+                folder_name_scenario_data, file_name_scenario_data = os.path.split(file_path_scenario_data)
+                make_folder(folder_name_scenario_data)
 
-            save_file_png(file_path_scenario_plot_png,
-                          domain_map_collection, domain_geo_x, domain_geo_y,
-                          scenario_name=domain_name_step, scenario_timestamp=time_string,
-                          fig_color_map_type=None, fig_dpi=150)
+                logging.info(' ----> Save file json ' + file_name_scenario_data + ' ... ')
+                save_file_json(file_path_scenario_data, domain_info_collection)
+                logging.info(' ----> Save file json ' + file_name_scenario_data + ' ... DONE')
 
-            folder_name_scenario_plot_tiff, file_name_scenario_plot_tiff = os.path.split(file_path_scenario_plot_tiff)
-            make_folder(folder_name_scenario_plot_tiff)
+                # Save information in png file
+                folder_name_scenario_plot_png, file_name_scenario_plot_png = os.path.split(file_path_scenario_plot_png)
+                make_folder(folder_name_scenario_plot_png)
 
-            save_file_tiff(file_path_scenario_plot_tiff,
-                           domain_map_collection, domain_geo_x, domain_geo_y,
-                           file_epsg_code='EPSG:32632')
+                logging.info(' ----> Save file png ' + file_name_scenario_plot_png + ' ... ')
+                save_file_png(file_path_scenario_plot_png,
+                              domain_map_collection, domain_geo_x, domain_geo_y,
+                              scenario_name=domain_name_step, scenario_timestamp=time_string,
+                              fig_color_map_type=None, fig_dpi=150)
+                logging.info(' ----> Save file png ' + file_name_scenario_plot_png + ' ... DONE')
+
+                # Save information in tiff file
+                folder_name_scenario_plot_tiff, file_name_scenario_plot_tiff = os.path.split(file_path_scenario_plot_tiff)
+                make_folder(folder_name_scenario_plot_tiff)
+
+                logging.info(' ----> Save file tiff ' + file_name_scenario_plot_tiff + ' ... ')
+                save_file_tiff(file_path_scenario_plot_tiff,
+                               domain_map_collection, domain_geo_x, domain_geo_y,
+                               file_epsg_code='EPSG:32632')
+                logging.info(' ----> Save file tiff ' + file_name_scenario_plot_tiff + ' ... DONE')
+
+                logging.info(' ---> Domain ' + domain_name_step + ' ... DONE')
+
+            else:
+                logging.info(' ---> Domain ' + domain_name_step + ' ... SKIPPED. Datasets are empty')
+
+        logging.info(' --> Dump scenario maps [' + str(time_run) + '] ... DONE')
 
     # -------------------------------------------------------------------------------------
 
@@ -231,62 +255,81 @@ class DriverScenario:
     # Method to compute scenario map
     def compute_scenario_map(self, scenario_data_collection):
 
+        time = self.time_run
         geo_data_collection = self.geo_data_collection
+
+        logging.info(' --> Compute scenario maps [' + str(time) + '] ... ')
 
         scenario_map_collection = {}
         for domain_name_step in self.domain_name_list:
+
+            logging.info(' ---> Domain ' + domain_name_step + ' ... ')
 
             domain_geo_data = geo_data_collection[domain_name_step]
             domain_scenario_data = scenario_data_collection[domain_name_step]
             domain_section_db = geo_data_collection[domain_name_step][self.domain_sections_db_tag]
 
-            domain_scenario_merged = np.zeros(
-                [domain_geo_data[self.domain_scenario_area_tag].shape[0],
-                 domain_geo_data[self.domain_scenario_area_tag].shape[1]])
-            domain_scenario_merged[:, :] = np.nan
-            for (section_db_key, section_db_data), (section_scenario_key, section_scenario_data) in zip(
-                    domain_section_db.items(), domain_scenario_data.items()):
+            if domain_scenario_data is not None:
 
-                section_db_n = section_db_data['n']
-                section_db_description = section_db_data['description']
-                section_db_name = section_db_data['name']
-                section_db_idx = section_db_data['idx']
-                section_db_discharge_default = section_db_data['discharge_default']
+                domain_scenario_merged = np.zeros(
+                    [domain_geo_data[self.domain_scenario_area_tag].shape[0],
+                     domain_geo_data[self.domain_scenario_area_tag].shape[1]])
+                domain_scenario_merged[:, :] = np.nan
+                for (section_db_key, section_db_data), (section_scenario_key, section_scenario_data) in zip(
+                        domain_section_db.items(), domain_scenario_data.items()):
 
-                assert section_db_description == section_scenario_key
+                    logging.info(' ----> Section ' + section_scenario_key + ' ... ')
 
-                section_scenario_tr_cmp = section_scenario_data[self.domain_scenario_index_tag]
+                    section_db_n = section_db_data['n']
+                    section_db_description = section_db_data['description']
+                    section_db_name = section_db_data['name']
+                    section_db_idx = section_db_data['idx']
+                    section_db_discharge_default = section_db_data['discharge_default']
 
-                # Check tr value
-                if np.isnan(section_scenario_tr_cmp):
-                    section_scenario_tr_other = get_dict_value(domain_scenario_data, self.domain_scenario_index_tag, [])
-                    section_scenario_tr_check = int(np.nanmax(section_scenario_tr_other))
-                else:
-                    section_scenario_tr_check = section_scenario_tr_cmp
+                    assert section_db_description == section_scenario_key
 
-                if section_scenario_tr_check >= self.tr_min:
+                    section_scenario_tr_cmp = section_scenario_data[self.domain_scenario_index_tag]
 
-                    section_area_idx = np.argwhere(domain_geo_data[self.domain_scenario_area_tag] == section_db_n)
+                    # Check tr value
+                    if np.isnan(section_scenario_tr_cmp):
+                        section_scenario_tr_other = get_dict_value(domain_scenario_data, self.domain_scenario_index_tag, [])
+                        section_scenario_tr_check = int(np.nanmax(section_scenario_tr_other))
+                    else:
+                        section_scenario_tr_check = section_scenario_tr_cmp
 
-                    section_scenario_tr_select = max(1, min(self.tr_max, section_scenario_tr_check))
+                    if section_scenario_tr_check >= self.tr_min:
 
-                    file_path_hazard = self.define_file_hazard(self.folder_name_hazard, self.file_name_hazard,
-                                                               domain_name_step, section_scenario_tr_select)
+                        section_area_idx = np.argwhere(domain_geo_data[self.domain_scenario_area_tag] == section_db_n)
 
-                    file_data_hazard = read_file_hazard(
-                        file_path_hazard, file_vars=[self.domain_scenario_hazard_tag])
-                    file_data_h = file_data_hazard[self.domain_scenario_hazard_tag]
+                        section_scenario_tr_select = max(1, min(self.tr_max, section_scenario_tr_check))
 
-                    idx_x = section_area_idx[:, 0]
-                    idx_y = section_area_idx[:, 1]
-                    domain_scenario_merged[idx_x, idx_y] = file_data_h[idx_x, idx_y]
+                        file_path_hazard = self.define_file_hazard(self.folder_name_hazard, self.file_name_hazard,
+                                                                   domain_name_step, section_scenario_tr_select)
 
-            # Adjust map values
-            domain_scenario_merged = domain_scenario_merged / self.scale_factor_hazard
-            domain_scenario_merged[domain_scenario_merged <= 0] = np.nan
+                        file_data_hazard = read_file_hazard(
+                            file_path_hazard, file_vars=[self.domain_scenario_hazard_tag])
+                        file_data_h = file_data_hazard[self.domain_scenario_hazard_tag]
+
+                        idx_x = section_area_idx[:, 0]
+                        idx_y = section_area_idx[:, 1]
+                        domain_scenario_merged[idx_x, idx_y] = file_data_h[idx_x, idx_y]
+
+                    logging.info(' ----> Section ' + section_scenario_key + ' ... DONE')
+
+                # Adjust map values
+                domain_scenario_merged = domain_scenario_merged / self.scale_factor_hazard
+                domain_scenario_merged[domain_scenario_merged <= 0] = np.nan
+
+                logging.info(' ---> Domain ' + domain_name_step + ' ... DONE')
+
+            else:
+                logging.info(' ---> Domain ' + domain_name_step + ' ... SKIPPED. Datasets are empty')
+                domain_scenario_merged = None
 
             # Store map values
             scenario_map_collection[domain_name_step] = domain_scenario_merged
+
+        logging.info(' --> Compute scenario maps [' + str(time) + '] ... DONE')
 
         return scenario_map_collection
     # -------------------------------------------------------------------------------------
@@ -295,11 +338,16 @@ class DriverScenario:
     # Method to organize scenario datasets
     def organize_scenario_datasets(self):
 
+        time = self.time_run
         discharge_data_collection = self.discharge_data_collection
         geo_data_collection = self.geo_data_collection
 
+        logging.info(' --> Organize scenario datasets [' + str(time) + '] ... ')
+
         scenario_info_collection = {}
         for domain_name_step in self.domain_name_list:
+
+            logging.info(' ---> Domain ' + domain_name_step + ' ... ')
 
             domain_discharge_data = discharge_data_collection[domain_name_step]
             domain_geo_data = geo_data_collection[domain_name_step]
@@ -313,30 +361,44 @@ class DriverScenario:
             for (section_db_key, section_db_data), (section_discharge_key, section_discharge_data) in zip(
                     domain_section_db.items(), domain_discharge_data.items()):
 
-                section_db_n = section_db_data['n']
-                section_db_description = section_db_data['description']
-                section_db_name = section_db_data['name']
-                section_db_idx = section_db_data['idx']
-                section_db_discharge_default = section_db_data['discharge_default']
+                logging.info(' ----> Section ' + section_discharge_key + ' ... ')
 
-                assert section_db_description == section_discharge_key
+                if section_discharge_data:
+                    section_db_n = section_db_data['n']
+                    section_db_description = section_db_data['description']
+                    section_db_name = section_db_data['name']
+                    section_db_idx = section_db_data['idx']
+                    section_db_discharge_default = section_db_data['discharge_default']
 
-                # Compute scenario idx
-                section_discharge_idx = domain_discharge_index[section_db_idx[0] - 1, section_db_idx[1] - 1]
+                    assert section_db_description == section_discharge_key
 
-                # Compute discharge for evaluating scenario
-                section_discharge_run, section_discharge_time, \
-                    section_discharge_value, section_n_value = self.compute_scenario_discharge(section_discharge_data)
-                # Compute tr for evaluating scenario
-                section_scenario_tr = self.compute_scenario_tr(section_discharge_idx, section_discharge_value)
+                    # Compute scenario idx
+                    section_discharge_idx = domain_discharge_index[section_db_idx[0] - 1, section_db_idx[1] - 1]
 
-                domain_scenario_workspace[section_discharge_key] = {}
-                domain_scenario_workspace[section_discharge_key][self.domain_scenario_index_tag] = section_scenario_tr
-                domain_scenario_workspace[section_discharge_key][self.domain_scenario_discharge_tag] = section_discharge_value
-                domain_scenario_workspace[section_discharge_key][self.domain_scenario_time_tag] = section_discharge_time
-                domain_scenario_workspace[section_discharge_key][self.domain_scenario_n_tag] = section_n_value
+                    # Compute discharge for evaluating scenario
+                    section_discharge_run, section_discharge_time, \
+                        section_discharge_value, section_n_value = self.compute_scenario_discharge(section_discharge_data)
+                    # Compute tr for evaluating scenario
+                    section_scenario_tr = self.compute_scenario_tr(section_discharge_idx, section_discharge_value)
+
+                    domain_scenario_workspace[section_discharge_key] = {}
+                    domain_scenario_workspace[section_discharge_key][self.domain_scenario_index_tag] = section_scenario_tr
+                    domain_scenario_workspace[section_discharge_key][self.domain_scenario_discharge_tag] = section_discharge_value
+                    domain_scenario_workspace[section_discharge_key][self.domain_scenario_time_tag] = section_discharge_time
+                    domain_scenario_workspace[section_discharge_key][self.domain_scenario_n_tag] = section_n_value
+
+                    logging.info(' ----> Section ' + section_discharge_key + ' ... DONE')
+
+                else:
+
+                    logging.info(' ----> Section ' + section_discharge_key + ' ... SKIPPED. Datasets are empty')
+                    domain_scenario_workspace = None
 
             scenario_info_collection[domain_name_step] = domain_scenario_workspace
+
+            logging.info(' ---> Domain ' + domain_name_step + ' ... DONE')
+
+        logging.info(' --> Organize scenario datasets [' + str(time) + '] ... DONE')
 
         return scenario_info_collection
 

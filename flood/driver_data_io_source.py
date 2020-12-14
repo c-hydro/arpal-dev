@@ -182,11 +182,15 @@ class DriverDischarge:
         time = self.time_run
         geo_data_collection = self.geo_data_collection
 
+        logging.info(' --> Organize discharge datasets [' + str(time) + '] ... ')
+
         file_path_discharge = self.file_path_discharge
         file_time_discharge = self.file_time_discharge
 
         section_collection = {}
         for domain_name_step in self.domain_name_list:
+
+            logging.info(' ---> Domain ' + domain_name_step + ' ... ')
 
             file_path_discharge = self.file_path_discharge[domain_name_step]
             file_path_ancillary = self.file_path_ancillary[domain_name_step]
@@ -211,33 +215,50 @@ class DriverDischarge:
                     section_discharge_default = section_data['discharge_default']
                     section_id = self.format_group.format(section_data['group']['id'])
 
+                    logging.info(' ----> Section ' + section_description + ' ... ')
+
                     section_file_path_list = file_path_discharge[section_id]
 
-                    section_dframe = pd.DataFrame(index=file_time_discharge)
-                    for section_file_path_step in section_file_path_list:
+                    if section_file_path_list:
+                        section_dframe = pd.DataFrame(index=file_time_discharge)
+                        for section_file_path_step in section_file_path_list:
 
-                        section_folder_name_step, section_file_name_step = os.path.split(section_file_path_step)
+                            section_folder_name_step, section_file_name_step = os.path.split(section_file_path_step)
 
-                        section_file_ts_start, section_file_ts_end, \
-                            section_file_mask, section_file_ens = parse_file_parts(section_file_name_step)
+                            section_file_ts_start, section_file_ts_end, \
+                                section_file_mask, section_file_ens = parse_file_parts(section_file_name_step)
 
-                        section_file_tag = create_file_tag(section_file_ts_start, section_file_ts_end, section_file_ens)
+                            section_file_tag = create_file_tag(section_file_ts_start, section_file_ts_end, section_file_ens)
 
-                        section_ts = read_file_hydro(section_name, section_file_path_step)
-                        section_dframe[section_file_tag] = section_ts
+                            section_ts = read_file_hydro(section_name, section_file_path_step)
+                            section_dframe[section_file_tag] = section_ts
 
-                    section_workspace[section_description] = section_dframe
+                        section_workspace[section_description] = section_dframe
+
+                        logging.info(' ----> Section ' + section_description + ' ... DONE')
+
+                    else:
+                        logging.info(' ----> Section ' + section_description + ' ... SKIPPED. Datasets are empty')
+                        section_workspace[section_description] = None
 
                 folder_name_ancillary, file_name_ancillary = os.path.split(file_path_ancillary)
                 make_folder(folder_name_ancillary)
 
-                write_obj(file_path_ancillary, section_workspace)
+                if None not in list(section_workspace.values()):
+                    write_obj(file_path_ancillary, section_workspace)
+                    logging.info(' ---> Domain ' + domain_name_step + ' ... DONE')
+                else:
+                    logging.info(' ---> Domain ' + domain_name_step + ' ... SKIPPED. All or some datasets are empty')
 
             else:
 
                 section_workspace = read_obj(file_path_ancillary)
 
+                logging.info(' ---> Domain ' + domain_name_step + ' ... SKIPPED. Data previously computed')
+
             section_collection[domain_name_step] = section_workspace
+
+            logging.info(' --> Organize discharge datasets [' + str(time) + '] ... DONE')
 
         return section_collection
 

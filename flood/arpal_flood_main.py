@@ -2,8 +2,8 @@
 """
 ARPAL Processing Tool - FLOODS SCENARIO
 
-__date__ = '20200522'
-__version__ = '1.0.0'
+__date__ = '20201214'
+__version__ = '1.5.0'
 __author__ =
         'Fabio Delogu (fabio.delogu@cimafoundation.org',
         'Flavio Pignone (flavio.pignone@cimafoundation.org',
@@ -17,6 +17,7 @@ General command line:
 python3 arpal_flood_main.py -settings_file configuration.json -time "YYYY-MM-DD HH:MM"
 
 Version(s):
+20201214 (1.5.0) --> Pre-operational release
 20200522 (1.0.0) --> Beta release
 """
 
@@ -129,7 +130,7 @@ def main():
             flag_cleaning_scenario=data_settings['algorithm']['flags']['cleaning_scenario_data'])
         scenario_info_collection = driver_data_destination_scenario.organize_scenario_datasets()
         scenario_map_collection = driver_data_destination_scenario.compute_scenario_map(scenario_info_collection)
-        driver_data_destination_scenario.plot_scenario_map(scenario_map_collection, scenario_info_collection)
+        driver_data_destination_scenario.dump_scenario_map(scenario_map_collection, scenario_info_collection)
         # -------------------------------------------------------------------------------------
 
     # -------------------------------------------------------------------------------------

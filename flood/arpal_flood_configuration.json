@@ -4,15 +4,15 @@
       "title": "Floods - Scenarios",
       "web-site": "",
       "source": "Python application developed by CIMA Research Foundation",
-      "history": "1.0.0 [20200522]",
+      "history": "1.5.0 [20201214]",
       "project-info": "ARPAL",
       "algorithm": ""
     },
     "flags": {
       "cleaning_geo_data": false,
-      "cleaning_scenario_data": false,
-      "cleaning_dynamic_data_source": false,
-      "cleaning_dynamic_data_ancillary": false,
+      "cleaning_scenario_data": true,
+      "cleaning_dynamic_data_source": true,
+      "cleaning_dynamic_data_ancillary": true,
       "cleaning_dynamic_data_destination": true
     },
     "ancillary": {
