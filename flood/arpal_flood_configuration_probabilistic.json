@@ -76,34 +76,34 @@
     "dynamic": {
       "source": {
         "discharge_data": {
-          "folder_name": "/home/fabio/Desktop/PyCharm_Workspace/arpal-ws/flood/data_dynamic/input/discharge/{source_sub_path_time_discharge}/",
+          "folder_name": "/home/fabio/Desktop/PyCharm_Workspace/arpal-ws/flood/data_dynamic/source/discharge_run_nowcasting/{source_sub_path_time_discharge}/",
           "file_name": "idro_{source_datetime_from_discharge}_{source_datetime_to_discharge}{mask_discharge}_{scenario_discharge}.txt"
         }
       },
       "ancillary": {
         "discharge_data": {
-          "folder_name": "/home/fabio/Desktop/PyCharm_Workspace/arpal-ws/flood/data_dynamic/ancillary/discharge/{ancillary_sub_path_time_discharge}/",
+          "folder_name": "/home/fabio/Desktop/PyCharm_Workspace/arpal-ws/flood/data_dynamic/ancillary/discharge_run_nowcasting/{ancillary_sub_path_time_discharge}/",
           "file_name": "discharge_{domain_name}_{ancillary_datetime_discharge}.workspace"
         }
       },
       "destination" : {
         "scenario_plot_tiff": {
-          "folder_name": "/home/fabio/Desktop/PyCharm_Workspace/arpal-ws/flood/data_dynamic/output/scenario/{destination_sub_path_time_scenario}",
+          "folder_name": "/home/fabio/Desktop/PyCharm_Workspace/arpal-ws/flood/data_dynamic/outcome/scenario_run_nowcasting/{destination_sub_path_time_scenario}",
           "file_name": "scenario_{domain_name}_{destination_datetime_scenario}.tiff"
         },
         "scenario_plot_png": {
-          "folder_name": "/home/fabio/Desktop/PyCharm_Workspace/arpal-ws/flood/data_dynamic/output/scenario/{destination_sub_path_time_scenario}",
+          "folder_name": "/home/fabio/Desktop/PyCharm_Workspace/arpal-ws/flood/data_dynamic/outcome/scenario_run_nowcasting/{destination_sub_path_time_scenario}",
           "file_name": "scenario_{domain_name}_{destination_datetime_scenario}.png"
         },
         "scenario_data": {
-          "folder_name": "/home/fabio/Desktop/PyCharm_Workspace/arpal-ws/flood/data_dynamic/output/scenario/{destination_sub_path_time_scenario}",
+          "folder_name": "/home/fabio/Desktop/PyCharm_Workspace/arpal-ws/flood/data_dynamic/outcome/scenario_run_nowcasting/{destination_sub_path_time_scenario}",
           "file_name": "scenario_{domain_name}_{destination_datetime_scenario}.json"
         }
       }
     },
     "log": {
-      "folder_name": "/home/fabio/Desktop/PyCharm_Workspace/arpal-ws/log/flood_finder/",
-      "file_name": "arpal_flood_scenarios_finder_log_local.txt"
+      "folder_name": "/home/fabio/Desktop/PyCharm_Workspace/arpal-ws/log/flood/",
+      "file_name": "arpal_flood_log_run_nowcasting.txt"
       },
     "library": {
       "folder_name": "",

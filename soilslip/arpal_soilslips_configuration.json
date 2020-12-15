@@ -229,8 +229,8 @@
       }
     },
     "log": {
-      "folder_name": "/home/fabio/Desktop/PyCharm_Workspace/arpal-ws/log/soil_slips/",
-      "file_name": "arpal_soil_slips_log_local.txt"
+      "folder_name": "/home/fabio/Desktop/PyCharm_Workspace/arpal-ws/log/soilslip/",
+      "file_name": "arpal_soilslip_log.txt"
     },
     "tmp": {
       "folder_name": "/home/fabio/Desktop/PyCharm_Workspace/arpal-ws/soilslip/dynamic/tmp/",

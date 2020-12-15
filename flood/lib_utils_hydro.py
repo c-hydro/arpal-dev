@@ -50,8 +50,11 @@ def read_file_info(file_name, file_id, file_header=None, file_skip_rows=1,
 # -------------------------------------------------------------------------------------
 # Method to create file tag
 def create_file_tag(section_ts_start, section_ts_end, section_ens, time_format='%Y%m%d%H%M', tag_sep=':'):
-    section_tag = section_ts_start.strftime(time_format) + '_' + section_ts_end.strftime(time_format) + \
-                  tag_sep + section_ens
+    if section_ens is not None:
+        section_tag = section_ts_start.strftime(time_format) + '_' + section_ts_end.strftime(time_format) + \
+                      tag_sep + section_ens
+    else:
+        section_tag = section_ts_start.strftime(time_format) + '_' + section_ts_end.strftime(time_format)
     return section_tag
 # -------------------------------------------------------------------------------------
 
@@ -62,10 +65,19 @@ def parse_file_parts(file_name):
 
     file_parts = re.findall(r'\d+', file_name)
 
-    file_part_datetime_start = datetime.strptime(file_parts[0], "%y%j%H%M")
-    file_part_datetime_end = datetime.strptime(file_parts[1][:-2], "%y%j%H%M")
-    file_part_mask = file_parts[1][-2:]
-    file_part_n_ens = file_parts[2]
+    if file_parts.__len__() == 3:
+        file_part_datetime_start = datetime.strptime(file_parts[0], "%y%j%H%M")
+        file_part_datetime_end = datetime.strptime(file_parts[1][:-2], "%y%j%H%M")
+        file_part_mask = file_parts[1][-2:]
+        file_part_n_ens = file_parts[2]
+    elif file_parts.__len__() == 2:
+        file_part_datetime_start = datetime.strptime(file_parts[0], "%y%j%H%M")
+        file_part_datetime_end = datetime.strptime(file_parts[1][:-2], "%y%j%H%M")
+        file_part_mask = file_parts[1][-2:]
+        file_part_n_ens = None
+    else:
+        logging.error(' ===> Parser of filename ' + file_name + ' fails for unknown format')
+        raise NotImplementedError('Case not implemented yet')
 
     file_part_timestamp_start = pd.Timestamp(file_part_datetime_start)
     file_part_timestamp_end = pd.Timestamp(file_part_datetime_end)

@@ -244,6 +244,7 @@ class DriverForcing:
                         file_time_src = None
                 else:
                     file_dframe = None
+                    file_time_src = None
                     logging.warning(' ===> File datasets of rain weather stations is not available.')
 
                 if (file_time_src is not None) and (file_time_src.__len__() > 1):

@@ -133,10 +133,14 @@ class DriverScenario:
     # Method to compute tr for evaluating scenario
     @staticmethod
     def compute_scenario_tr(section_discharge_idx, section_discharge_value):
-        if section_discharge_value >= 0.0:
-            section_scenario_tr = np.round(np.exp(
-                (section_discharge_idx * 0.5239 + section_discharge_value) / (section_discharge_idx * 1.0433)))
-            section_scenario_tr = int(section_scenario_tr)
+
+        if section_discharge_idx > 0.0:
+            if section_discharge_value >= 0.0:
+                section_scenario_tr = np.round(np.exp(
+                    (section_discharge_idx * 0.5239 + section_discharge_value) / (section_discharge_idx * 1.0433)))
+                section_scenario_tr = int(section_scenario_tr)
+            else:
+                section_scenario_tr = np.nan
         else:
             section_scenario_tr = np.nan
 
@@ -363,7 +367,7 @@ class DriverScenario:
 
                 logging.info(' ----> Section ' + section_discharge_key + ' ... ')
 
-                if section_discharge_data:
+                if section_discharge_data is not None:
                     section_db_n = section_db_data['n']
                     section_db_description = section_db_data['description']
                     section_db_name = section_db_data['name']

@@ -244,7 +244,13 @@ class DriverDischarge:
                 folder_name_ancillary, file_name_ancillary = os.path.split(file_path_ancillary)
                 make_folder(folder_name_ancillary)
 
-                if None not in list(section_workspace.values()):
+                flag_save_obj = True
+                for section_key, section_data in section_workspace.items():
+                    if section_data is None:
+                        flag_save_obj = False
+                        break
+
+                if flag_save_obj:
                     write_obj(file_path_ancillary, section_workspace)
                     logging.info(' ---> Domain ' + domain_name_step + ' ... DONE')
                 else:
