@@ -122,7 +122,7 @@ def read_file_csv(file_name, file_time=None, file_header=None, file_format=None,
     file_dframe = file_dframe.replace(to_replace=',', value='.', regex=True)
     file_dframe = file_dframe.replace(to_replace=':', value=file_sep, regex=True)
 
-    file_dframe = file_dframe.dropna(axis='columns')
+    file_dframe = file_dframe.dropna(axis='columns', how='all')
 
     if (file_dframe.columns.__len__() == 1) and (file_dframe.columns.__len__() != file_header.__len__()):
 

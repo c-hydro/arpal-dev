@@ -1,0 +1,96 @@
+Fidandosi del nome, lo script che gira operativamente è:
+
+/share/work_matlab/drops/FloodProofs/Previsioni/Funzioni/IndicatoreDissestiOperativo.m
+
+Ma per ora non trovo chi lo lancia...
+
+-----------------------------------------------------------------------------------------
+
+Dai path che vedo dichiarati a inizio script, credo giri a valle della previsione VDA_6H, ma mi serve conferma.
+
+È davvero così, perché chiamata alla function "IndicatoriDissestiOperativo" è dentro a 
+
+/share/work_matlab/drops/FloodProofs/Previsioni/PrevisioneEvento2p2_v2_6h.m
+
+intorno a riga 900 (dentro un If che ne prevede l'esecuzione solo se si sta girando con previsioni VDA 6H e se è il primo dei 25 run in disaggregazione. All'inizio dell'IF c'è un commento che dice "integrazione Fabio 01/03/2017").
+
+-----------------------------------------------------------------------------------------
+
+Unico input da passare alla function è sDataNow. Gli altri sono tutti HARDCODED all'interno della function.
+
+Commento iniziale dice "calcolo indicatore dissesti P1 vs SM con P1 osservata nelle prime 12h e prevista nelle successive 36h".
+
+IInanDem = vettore con indici delle celle di a2dDem che sono NaN (celle fuori dal dominio di calcolo)
+
+sDataNow = 'yyyymmddHHMM'; --> per VDA 6H credo che di solito sia circa le 08:00 o 09:00 o 10:00 del giorno in corso;
+
+sDataToday è sempre una stringa con lo stesso formato di sDataNow. È sempre le 00:00 del giorno di sDataNow;
+
+sDataInizio imposta pari a sDataToday; quindi nDays viene sempre uguale a 1; per questo stesso motivo sData è già pari a sDataFine ancora prima di far partire il while, quindi una sola iterazione.
+
+Una delle prima cose fatte dentro il ciclo è leggere soil moisture simulata da Continuum "operativo" alle 23:00 UTC del giorno prima (formato binario per interi, serve divisione per 10000, poi calcolo grado saturazione in a2dS)
+
+Poi stessa cosa per le 06:00 UTC del giorno in corso; saturazione in a2dS6.
+
+Nei mesi non da luglio a ottobre compresi, viene caricata anche mappa di SWE delle 23:00 UTC del giorno precedente. VALORI di SWE MINORI di 10 CONSIDERATI TRASCURABILI (nella pratica SWE posta pari a 0)
+
+IMPORTANTE: dove c'è neve non trascurbaile (SWE "ritoccato" maggiore di 0), mappe grado saturazione messe pari a NaN.
+
+iA è contatore per ciclo sulle 4 aree di allertamento.
+
+a2dMeanSM23 = grado saturazione medio nell'area di allertamento relativo alle 23:00 UTC del giorno precedente, calcolato solo sulle celle NON nevose.
+
+iiS = percentuale (arrotondata all'intero più vicino) di pixel dell'area di allertamento su cui è stata calcolata la statistica (quindi pixel NON nevosi)
+
+IMPORTANTE: se iiS è inferiore al 5%, allora la statistica non è considerata valida e si pone a2dMeanSM23 pari a NaN
+
+Si ripete calcolo anche per la saturazione alle 06:00 UTC del giorno in corso, e si riempe vettore
+a2dMeanSM6
+anche qui NaN se neve copre più del 95% dei pixel dell'area di allertamento.
+
+IMPORTANTE: nel ciclo su aree di allertamento è compreso il recuperare i dati di neve (i.e. lettura SWE da file zip). Quindi da questo punto di vista ogni volta è come ripartire da zero (invece mappe del grado di saturazione rimangono quelle che sono)
+
+
+Da riga circa 300 parte calcolo cumulata della precipitazione liquida media nell'area di allertamento.
+
+Nel caso di un giorno solo in esame (come dovrebbe essere sempre qui), si considera che le osservazioni di precipitazione siano a disposizione dalle 00:00 UTC del giorno in questione fino all'orario dell'sDateNow (di solito le 9 o 10 UTC).
+Le previsioni di precipitazione sono prese in considerazione dall'ora successiva (sDataInizioPrev).
+
+Si calcola anche il numero di ore di "anticipo" rispetto alle 12:00 UTC che sono il primo istante di validità della previsione soggettiva di oggi.
+
+Ciclo (while) dalle 00:00 UTC del giorno in corso all'ultimo istante in cui cercare le osservazioni di precipitazione. Per ogni ora si legge la mappa "Rain_" dagli output di S3M in 
+/share/work_matlab/drops/FloodProofs/S3M_3.1_Nud_ARPA/S3MOutputMap/
+Quindi si considera precipitazione liquida+melting.
+E se ne fa la media sulle 4 aree di allertamento, riempiendo la matrice "a2dOss" [n. ore con osserv. X n. aree allertam.]
+
+
+Per ogni area di allertamento (ciclo for con contatore iJ), prende previsione di precipitazione del giorno precedente valida dalle 06 alle 12 UTC del giorno in corso (il valore che sta nella quarta riga del cell array 'a1dPrevSogg') e lo butta nella prima colonna della matrice a2dMedia [n.aree allertamento X 7].
+Nelle colonne dalla 2 alla 7 mette i 6 valori appartenenti alla previsione del giorno in corso.
+
+Fa la stessa identica cosa per la previsione della quota dello zero termico e della quota limite neve (dove quota limite neve è NaN mette il valore della quota dello zero termico).
+
+ATTENZIONE!!! 
+non capisco come mai per QLN e QZT non copia i 6 valori della previsione del giorno in corso ma solo i primi 3 ripetuti ognuno 2 volte!!!
+RISPOSTA 2020/02/26 
+perché le previsioni di QLN e QZT sono prodotte con passo temporale di 12 ore e non di 6 ore come le previsioni di precipitazione di riferimento (VDA_6H). Quindi per coprire 36 ore dall'inizio validità, per QLN e QZT bastano i primi 3 valori e vanno ripetuti nei sottopassi a 6 ore.
+
+Ciclo sugli istanti da coprire con previsioni per riempire "a2dRainPrev" [n. ore previsioni X n. aree allertam.] con precipitazione media prevista sulle aree di allertamento. N.B. i pixel in cui precipitazione è considerata solida vengono individuati con QLN e lì valore messo a 0 (riga 480). 
+Quindi se su metà celle dell'area si prevede neve, il valore di precipitazione medio previsto per l'area di allertamento è pari a metà dei mm indicati nella previsione.
+
+Poi legge da mappe di output di S3M quanto melting è previsto forzando il modello con le previsioni VDA 6H e riempe la matrice "a2dMeltPrev" con la media sull'area di allertamento per ogni ora di previsione [n. ore previsioni X n. aree allertam]
+Media sempre su tutte le celle!!!
+
+Somma i contributi in previsione di precipitazione liquida e melting per allinearsi con quello calcolato per l'osservato. 
+ATTENZIONE PERÒ alle celle su cui sono fatte le varie medie....
+a2dOss --> sempre su tutte le celle dell'area di allertamento senza nessun intervento propedeutico sulla mappa "Rain_" prodotta da S3M (quindi già comprensiva del melting e dell'esclusione della neve)
+a2dMeltPrev --> sempre su tutte le celle dell'area di allertamento
+a2dRainPrev --> media su tutte le celle dell'area di allertamento ma ponendo pari a zero la precipitazione liquida sopra la QLN (quindi in pratica si spalma il volume solo liquido su tutta l'area di allertamento)
+
+
+Da riga circa 534 parte la "stima della peggior cumulata di 24 ore".
+Fa finestra mobile... niente sorprese a prima vista.
+
+[stessa roba vale per previsione della quota limite neve; interrogazione con stringa 'Quota neve'. Normale che alcuni valori, o tutti, siano NaN]
+
+
+

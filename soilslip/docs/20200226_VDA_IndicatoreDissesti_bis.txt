@@ -1,0 +1,49 @@
+####### INDICATORE DISSESTI ORA OPERATIVO
+
+- Calcolato alla scala dell'Area di Allertamento --> sono 4 grafici, uno per AA;
+
+- Plot è Grado di Saturazione medio sull'AA [-] (*) vs Precipitazione "media" [mm] (non esattamente media vera, vedere **)
+
+- Quindi, per singola AA si ottiene un puntino e si valuta quanto è "probabile" attendersi dissesti diffusi sull'AA a seconda della regione dello spazio grado sat.-P1 in cui ricade il puntino (regioni diverse per ogni AA e definite dopo uno studio dedicato).
+
+- IMPORTANTE: indicatore nasce per lavorare in previsione, i.e. è calcolato sulla base delle previsioni soggettive a 6H (specificatamente sul primo run della serie).
+
+
+(*) Grado Saturazione:
+ 
+Su pagina dedicata su Presidi dichiarato che è calcolata sulla base del contenuto idrico simulato da Continuum operativo per le 23 del giorno precedente a quello di calcolo dell'indicatore. 
+Quindi è un contenuto idrico osservato, non previsto (anche perché in questa catena Continuum gira solo sulle osservazioni, mai in previsione).
+Sempre sulla descrizione su Presidi, si legge che media areale fatta escludendo pixel innevati nel periodo Settembre-Giugno (***) [mi chiedo: perché non escluderli sempre nel caso in cui siano innevati anche al di fuori di questo periodo??? Tanto non succede, ma comunque non capisco perché fare una scelta a priori] - [e poi, dei pixel di ghiacciaio che ne facciamo?]
+
+Dai miei appunti presi a valle della lettura dello script operativo "20190514_VDA_INFO_IndicatoreDissesti.txt" confermato che nel plot il grado di saturazione medio è quello riferito alle 23 UTC del giorno precedente, ma si vede anche che viene calcolato anche per le 6 UTC del giorno in corso; solo che questo non ha ruolo nel plot, è solo scritto nel file .txt che giorno per giorno è aggiornato. Il file in questione è:
+/share/work_matlab/drops/FloodProofs/FigureCF/SintesiIndicatoreDissestiOperativo.txt
+
+Le mappe di contenuto idrico sono pescate da:
+/share/work_matlab/drops/FloodProofs/Continuum_Operativo/Risultati/Mappe/
+
+Mappe di contenuto idrico/grado di saturazione sono mascherate sulla neve; i.e. quando SWE>10 mm allora pixel posti pari a NaN e media fatta con nanmean, quindi non considerati.
+La mappa di SWE che si usa per mascherare è quella delle 23 UTC del giorno precedente, a prescindere che si stia elaborando il contenuto idrico delle 23 o delle 6 del giorno in corso. 
+Quando più del 95% dei pixel è nevoso, allora l'indicatore non è calcolato (NaN nel .txt di riepilogo e niente nel plot).
+
+(***) guardando lo script vedo che invece il periodo in cui non si controlla niente riguardo l'innevamento è Novembre-Giugno compresi e non Settembre-Giugno come dichiarato nella pagina di presidi.
+
+
+(**) Precipitazione - P1:
+Su presidi come descrizione compare:
+"P1 stimata come peggior cumulata media areale su 24h all’interno della finestra di 48h composta da una finestra di osservazione di lunghezza variabile a seconda dell’orario di emissione delle previsioni soggettive (osservazioni dalle 00.00 UTC del giorno corrente all’orario di emissione delle nuove soggettive) e da una finestra di previsione (previsioni dall’orario di emissione delle nuove soggettive alle 23.00 UTC del giorno successivo a quello corrente); l’intervallo di previsione compreso tra l’orario di emissione delle nuove soggettive e le 12.00 UTC (inizio validità delle nuove previsioni) è coperto dalla previsione del giorno precedente."
+
+Guardando i miei appunti sullo script direi che è tutto corretto; rimane da chiarire come è fatta la media areale...
+
+Riprendo gli appunti:
+a2dOss --> sempre su tutte le celle dell'area di allertamento senza nessun intervento propedeutico sulla mappa "Rain_" prodotta da S3M (quindi già comprensiva del melting e dell'esclusione della neve)
+a2dMeltPrev --> sempre su tutte le celle dell'area di allertamento
+a2dRainPrev --> media su tutte le celle dell'area di allertamento ma ponendo pari a zero la precipitazione liquida sopra la QLN (quindi in pratica si spalma il volume solo liquido su tutta l'area di allertamento)
+
+Quindi, in sintesi:
+La cumulata sulle 24 ore di precipitazione è sempre, a prescindere dall'innevamento entro l'area, la media su tutta l'Area di Allertamento di precipitazione liquida e fusione previsti od osservati tramite modello (i.e. per il periodo dalle 00 utc del giorno in corso all'istante presente ci si riferisce alle mappe di output di S3M forzato con osservazioni meteo) nella regione in esame. Quindi, per una certa AA, è ottenuta spalmando il volume liquido in gioco, a prescindere dallo specifico pixel in cui è previsto che precipiti o si generi, su tutta l'area.
+
+[mappe di melting previsto vengono da: /share/work_matlab/drops/FloodProofs/Previsioni/VDA_6H/Input/Dati_meteo/RainDRiFt/Melting_*]
+
+Finestra mobile ha durata 24 ore e parte dalle 00 UTC del giorno in corso; scorre di 1 ora ed arriva fino alle 23 UTC del giorno successivo a quello in corso.
+
+

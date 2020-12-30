@@ -245,9 +245,11 @@ class DriverAnalysis:
             if not os.path.exists(file_path_dest):
 
                 file_list_check = []
-                for file_step in file_list:
+                time_range_check = []
+                for file_step, timestamp_step in zip(file_list, time_range):
                     if os.path.exists(file_step):
                         file_list_check.append(file_step)
+                        time_range_check.append(timestamp_step)
                 file_analysis = False
                 if file_list_check.__len__() >= 1:
                     file_analysis = True
@@ -263,6 +265,24 @@ class DriverAnalysis:
                             file_data_raw = create_dset(
                                 data_2d, mask_2d, geox_out_2d, geoy_out_2d,
                                 var_data_time=time_step, var_data_name=var_name,
+                                var_geo_name='mask', var_data_attrs=None, var_geo_attrs=None,
+                                coord_name_x='longitude', coord_name_y='latitude', coord_name_time='time',
+                                dim_name_x='west_east', dim_name_y='south_north', dim_name_time='time',
+                                dims_order_2d=None, dims_order_3d=None)
+
+                        elif file_list.__len__() > 1:
+
+                            data_3d = np.zeros(shape=[geox_out_2d.shape[0], geoy_out_2d.shape[1], file_list_check.__len__()])
+                            data_3d[:, :, :] = np.nan
+                            data_time = []
+                            for file_id, (file_step, timestamp_step) in enumerate(zip(file_list_check, time_range_check)):
+                                data_2d, proj, geotrans = read_file_tiff(file_step)
+                                data_3d[:, :, file_id] = data_2d
+                                data_time.append(timestamp_step)
+
+                            file_data_raw = create_dset(
+                                data_3d, mask_2d, geox_out_2d, geoy_out_2d,
+                                var_data_time=data_time, var_data_name=var_name,
                                 var_geo_name='mask', var_data_attrs=None, var_geo_attrs=None,
                                 coord_name_x='longitude', coord_name_y='latitude', coord_name_time='time',
                                 dim_name_x='west_east', dim_name_y='south_north', dim_name_time='time',
@@ -392,6 +412,7 @@ class DriverAnalysis:
                 file_analysis = True
                 for file_step in file_list:
                     if not os.path.exists(file_step):
+                        logging.warning(' ===> Filename ' + file_step + ' does not exist')
                         file_analysis = False
                         break
 
@@ -406,10 +427,10 @@ class DriverAnalysis:
                             data_3d = np.zeros(shape=[geox_region_2d.shape[0], geoy_region_2d.shape[1], file_list.__len__()])
                             data_3d[:, :, :] = np.nan
                             data_time = []
-                            for file_id, (file_step, time_step) in enumerate(zip(file_list, time_range)):
+                            for file_id, (file_step, timestamp_step) in enumerate(zip(file_list, time_range)):
                                 data_2d, proj, geotrans = read_file_tiff(file_step)
                                 data_3d[:, :, file_id] = data_2d
-                                data_time.append(time_step)
+                                data_time.append(timestamp_step)
 
                             file_obj = create_dset(
                                 data_3d, mask_region_2d, geox_region_2d, geoy_region_2d,
