@@ -46,21 +46,28 @@ def plot_scenarios_rain2sm(file_data, file_path,
         raise IOError('Variable is not correctly defined')
 
     if 'soil_moisture_type' in list(extra_args.keys()):
-        sm_type = extra_args['soil_moisture_type'][0]
+        sm_type = extra_args['soil_moisture_type']
     else:
         logging.error(' ===> SoilMoisture Type is not defined in settings')
         raise IOError('Variable is not correctly defined')
 
     for rain_type_step in rain_type:
 
-        file_path_step = file_path.replace('var_rain', ':').format(rain_type_step)
-        file_path_step = file_path_step.replace('var_sm', ':').format(sm_type)
+        if ('var_rain' in file_path) and ('var_sm' not in file_path):
+            file_path_step = file_path.replace('var_rain', ':').format(rain_type_step)
+        elif ('var_rain' in file_path) and ('var_sm' in file_path):
+            file_path_step = file_path.replace('var_rain', ':')
+            file_path_step = file_path_step.replace('var_sm', ':')
+            file_path_step = file_path_step.format(rain_type_step, sm_type)
+        else:
+            logging.error(' ===> File path filling failed')
+            raise NotImplementedError('Case not implemented yet')
 
         var_y_step = var_y.format(rain_type_step)
         var_data_y = file_data[var_y_step].values
 
         axis_y_step = axes_y_template.format(rain_type_step)
-        axis_x_step = axes_x_template.format(soil_moisture_type)
+        axis_x_step = axes_x_template.format(sm_type)
 
         # Open figure
         fig = plt.figure(figsize=(17, 11))
@@ -110,7 +117,7 @@ def plot_scenarios_rain2sm(file_data, file_path,
                        'TimePeriod :: ' + var_time_from_ref + ' - ' + var_time_to_ref,
                        fontdict=dict(fontsize=16, fontweight='bold'))
 
-        #plt.show()
+        # plt.show()
 
         fig.savefig(file_path_step, dpi=figure_dpi)
         plt.close()

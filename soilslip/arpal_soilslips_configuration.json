@@ -10,11 +10,11 @@
     },
     "flags": {
       "__comment__": "running_mode values: analyzer, publisher",
-      "running_mode": ["analyzer","publisher"],
+      "running_mode": ["publisher"],
       "updating_static_data": false,
       "updating_dynamic_ancillary_rain": false,
       "updating_dynamic_ancillary_sm": false,
-      "updating_dynamic_indicators": true,
+      "updating_dynamic_indicators": false,
       "updating_dynamic_scenarios": true
     },
     "ancillary": {
@@ -219,11 +219,11 @@
           },
           "rain2sm_graph": {
             "folder_name": "/home/fabio/Desktop/PyCharm_Workspace/arpal-ws/soilslip/dynamic/outcome/scenarios/{run_sub_path_time}",
-            "file_name": "scenarios_rain2sm_{destination_scenarios_datetime_from}_{destination_scenarios_datetime_to}_{alert_area_name}_sm{var_sm}_rain{var_rain}.tiff"
+            "file_name": "scenarios_rain2sm_{destination_scenarios_datetime_from}_{destination_scenarios_datetime_to}_{alert_area_name}_rain{var_rain}_sm{var_sm}.tiff"
           },
           "rain2event_graph": {
             "folder_name": "/home/fabio/Desktop/PyCharm_Workspace/arpal-ws/soilslip/dynamic/outcome/scenarios/{run_sub_path_time}",
-            "file_name": "scenarios_rain_{destination_scenarios_datetime_from}_{destination_scenarios_datetime_to}_{alert_area_name}_sm{var_sm}_rain{var_rain}.tiff"
+            "file_name": "scenarios_rain_{destination_scenarios_datetime_from}_{destination_scenarios_datetime_to}_{alert_area_name}_rain{var_rain}_sm{var_sm}.tiff"
           }
         }
       }
@@ -239,7 +239,7 @@
   },
   "time": {
     "time_now": null,
-    "time_period": 62,
+    "time_period": 3000,
     "time_frequency": "D",
     "time_rounding": "D"
   }

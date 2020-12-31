@@ -187,23 +187,24 @@ class DriverAnalysis:
                 make_folder(folder_name_rain2sm)
 
                 plot_scenarios_rain2sm(file_data, file_path_rain2sm,
-                                       var_x='soil_moisture_max', var_y=self.template_rain_accumulated,
-                                       var_z='event_index',
-                                       event_n_min=self.event_n_min, event_label=self.event_label,
-                                       figure_dpi=60,
-                                       extra_args={'rain_type': rain_period_list,
-                                                   'soil_moisture_type': 'max'})
-
-                plot_scenarios_rain2sm(file_data, file_path_rain2sm,
-                                       var_x='soil_moisture_avg', var_y=self.template_rain_accumulated,
+                                       var_x='soil_moisture', var_y=self.template_rain_accumulated,
                                        var_z='event_index',
                                        event_n_min=self.event_n_min, event_label=self.event_label,
                                        figure_dpi=60,
                                        extra_args={'rain_type': rain_period_list,
                                                    'soil_moisture_type': 'average'})
 
+                #plot_scenarios_rain2sm(file_data, file_path_rain2sm,
+                #                       var_x='soil_moisture_maximum', var_y=self.template_rain_accumulated,
+                #                       var_z='event_index',
+                #                       event_n_min=self.event_n_min, event_label=self.event_label,
+                #                       figure_dpi=60,
+                #                       extra_args={'rain_type': rain_period_list,
+                #                                   'soil_moisture_type': 'max'})
+
                 logging.info(' ------> Plot rain against sm ... DONE')
 
+                '''
                 logging.info(' ------> Plot sm against events ... ')
 
                 folder_name_sm2event, file_name_sm2event = os.path.split(file_path_sm2event)
@@ -221,6 +222,7 @@ class DriverAnalysis:
 
                 plot_scenarios_rain2event(file_data, file_path_rain2event)
                 logging.info(' ------> Plot rain against events ... DONE')
+                '''
 
                 logging.info(' -----> Alert Area ' + group_data_key + '  ... DONE')
             else:
