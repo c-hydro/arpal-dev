@@ -92,6 +92,9 @@ class DriverGeoPoint:
     # Method to organize data
     def organize_data(self):
 
+        # Starting info
+        logging.info(' ----> Organize point information ... ')
+
         geo_point_db = self.dset_geo_point
         time_point_expected = self.dset_time_point
 
@@ -132,6 +135,9 @@ class DriverGeoPoint:
 
             soil_slip_collections[group_key] = {}
             soil_slip_collections[group_key] = dframe_soilslip
+
+        # Ending info
+        logging.info(' ----> Organize point information ... DONE')
 
         return soil_slip_collections
 

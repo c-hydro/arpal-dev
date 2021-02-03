@@ -4,13 +4,13 @@
       "title": "Processing tool for soil slips",
       "web-site": "",
       "source": "Python library developed by CIMA Research Foundation",
-      "history": "1.0.0 [20200515]",
+      "history": "1.2.0 [20210202]",
       "project-info": "arpal",
       "algorithm": "Soil-slips tool developed by CIMA Research Foundation"
     },
     "flags": {
       "__comment__": "running_mode values: analyzer, publisher",
-      "running_mode": ["publisher"],
+      "running_mode": ["analyzer","publisher"],
       "updating_static_data": false,
       "updating_dynamic_ancillary_rain": false,
       "updating_dynamic_ancillary_sm": false,
@@ -23,7 +23,7 @@
           "name": "A",
           "warning_threshold" : {"white": [0,0], "green": [1,2], "yellow": [3,5], "orange": [6,13], "red": [14,null]},
           "warning_index" : {"white": 0, "green": 1, "yellow": 2, "orange": 3, "red": 4},
-          "basin": ["Centa", "Imperiese", "Ponente"],
+          "basin": ["Centa", "Imperiese", "Ponente", "Finalese"],
           "rain_datasets" : {
             "search_period": ["3H", "6H", "9H", "12H", "24H"],
             "search_type": ["left"]
@@ -37,7 +37,7 @@
           "name": "B",
           "warning_threshold" : {"white": [0,0], "green": [1,2], "yellow": [3,5], "orange": [6,13], "red": [14,null]},
           "warning_index" : {"white": 0, "green": 1, "yellow": 2, "orange": 3, "red": 4},
-          "basin": [],
+          "basin": ["Savonese", "CentroPonente", "PonenteGenovese", "LevanteGenovese"],
           "rain_datasets" : {
             "search_period": ["3H", "6H", "9H", "12H", "24H"],
             "search_type": ["left"]
@@ -51,7 +51,7 @@
           "name": "C",
           "warning_threshold" : {"white": [0,0], "green": [1,2], "yellow": [3,5], "orange": [6,13], "red": [14,null]},
           "warning_index" : {"white": 0, "green": 1, "yellow": 2, "orange": 3, "red": 4},
-          "basin": [],
+          "basin": ["Magra"],
           "rain_datasets" : {
             "search_period": ["3H", "6H", "9H", "12H", "24H"],
             "search_type": ["left"]
@@ -65,7 +65,7 @@
           "name": "D",
           "warning_threshold" : {"white": [0,0], "green": [1,2], "yellow": [3,5], "orange": [6,13], "red": [14,null]},
           "warning_index" : {"white": 0, "green": 1, "yellow": 2, "orange": 3, "red": 4},
-          "basin": [],
+          "basin": ["BormidaS", "BormidaM", "Erro", "OrbaStura"],
           "rain_datasets" : {
             "search_period": ["3H", "6H", "9H", "12H", "24H"],
             "search_type": ["left"]
@@ -79,7 +79,7 @@
           "name": "E",
           "warning_threshold" : {"white": [0,0], "green": [1,2], "yellow": [3,5], "orange": [6,13], "red": [14,null]},
           "warning_index" : {"white": 0, "green": 1, "yellow": 2, "orange": 3, "red": 4},
-          "basin": [],
+          "basin": ["Scrivia", "AvetoTrebbia"],
           "rain_datasets" : {
             "search_period": ["3H", "6H", "9H", "12H", "24H"],
             "search_type": ["left"]
@@ -95,6 +95,7 @@
       "domain_name": "string_domain",
       "month_name": "string_month",
       "alert_area_name": "string_alert_area",
+      "season_name": "string_season",
       "var_rain": "string_var_rain",
       "var_sm": "string_var_sm",
       "basin_name": "string_basin",
@@ -159,6 +160,10 @@
           "alert_area_raster" : {
             "folder_name": "/home/fabio/Desktop/PyCharm_Workspace/arpal-ws/soilslip/static/liguria/",
             "file_name": "geo_alert_area_{alert_area_name}.tiff"
+          },
+          "alert_area_index" : {
+            "folder_name": "/home/fabio/Desktop/PyCharm_Workspace/arpal-ws/soilslip/static/liguria/",
+            "file_name": "index_alert_area_{alert_area_name}.workspace"
           }
         },
         "basin_data": {
@@ -219,7 +224,7 @@
           },
           "rain2sm_graph": {
             "folder_name": "/home/fabio/Desktop/PyCharm_Workspace/arpal-ws/soilslip/dynamic/outcome/scenarios/{run_sub_path_time}",
-            "file_name": "scenarios_rain2sm_{destination_scenarios_datetime_from}_{destination_scenarios_datetime_to}_{alert_area_name}_rain{var_rain}_sm{var_sm}.tiff"
+            "file_name": "scenarios_rain2sm_{destination_scenarios_datetime_from}_{destination_scenarios_datetime_to}_{alert_area_name}_rain{var_rain}_sm{var_sm}_{season_name}.tiff"
           },
           "rain2event_graph": {
             "folder_name": "/home/fabio/Desktop/PyCharm_Workspace/arpal-ws/soilslip/dynamic/outcome/scenarios/{run_sub_path_time}",
@@ -239,7 +244,7 @@
   },
   "time": {
     "time_now": null,
-    "time_period": 3000,
+    "time_period": 1,
     "time_frequency": "D",
     "time_rounding": "D"
   }

@@ -101,8 +101,23 @@ def read_file_binary(file_name, data_geo, scale_factor=10000):
 
 # -------------------------------------------------------------------------------------
 # Method to write file csv
-def write_file_csv(file_name, file_df, file_sep=',', file_header=True, file_index=True):
-    file_df.to_csv(file_name, sep=file_sep, header=file_header, index=file_index)
+def write_file_csv(file_name, file_df, file_sep=',', file_header=True, file_index=True, file_format='%.2f'):
+    file_df.to_csv(file_name,
+                   sep=file_sep, header=file_header, index=file_index, float_format=file_format)
+# -------------------------------------------------------------------------------------
+
+
+# -------------------------------------------------------------------------------------
+# Method to read csv and transform to a dataframe
+def convert_file_csv2df(file_name):
+    file_df = pd.read_csv(file_name)
+
+    if 'Unnamed' in list(file_df.columns)[0]:
+        file_df.rename(columns={'Unnamed: 0': 'time'}, inplace=True)
+        file_df['time'] = pd.to_datetime(file_df['time'], format="%Y-%m-%d")
+        file_df.set_index('time', inplace=True)
+
+    return file_df
 # -------------------------------------------------------------------------------------
 
 
@@ -142,6 +157,8 @@ def read_file_csv(file_name, file_time=None, file_header=None, file_format=None,
     else:
         logging.error(' ===> Parser of csv file ' + file_name + ' failed')
         raise IOError('Check the format of csv file')
+
+    #values = [float(i) for i in file_dframe['data'].values]
 
     file_dframe = file_dframe.reset_index()
     file_dframe = file_dframe.set_index('time')

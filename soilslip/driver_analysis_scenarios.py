@@ -18,7 +18,8 @@ import xarray as xr
 
 from lib_utils_generic import get_dict_nested_value, find_maximum_delta, split_time_parts
 from lib_utils_system import fill_tags2string, make_folder
-from lib_utils_io import write_obj, read_obj, write_file_csv
+from lib_utils_io import write_obj, read_obj, write_file_csv, convert_file_csv2df
+from lib_utils_data import filter_scenarios_dataframe
 from lib_utils_plot import plot_scenarios_sm2event, plot_scenarios_rain2event, plot_scenarios_rain2sm
 
 # Debug
@@ -43,7 +44,7 @@ class DriverAnalysis:
                  flag_scenarios_graph_rain2event=None,
                  flag_scenarios_graph_rain2sm=None,
                  flag_dest_updating=True,
-                 event_n_min=0, event_label=True):
+                 event_n_min=0, event_n_max=None, event_label=True, filter_season=False):
 
         if flag_scenarios_graph_rain2event is None:
             flag_scenarios_graph_rain2event = ['scenarios_graph', 'rain2event_graph']
@@ -79,6 +80,19 @@ class DriverAnalysis:
         self.alg_template_tags = alg_template_tags
 
         self.structure_data_group = group_data
+
+        self.filter_season = filter_season
+
+        if self.filter_season:
+            self.lut_season = {
+                1: 'DJF', 2: 'DJF', 3: 'MAM', 4: 'MAM', 5: 'MAM', 6: 'JJA',
+                7: 'JJA', 8: 'JJA', 9: 'SON', 10: 'SON', 11: 'SON', 12: 'DJF'}
+        else:
+            self.lut_season = {
+                1: 'ALL', 2: 'ALL', 3: 'ALL', 4: 'ALL', 5: 'ALL', 6: 'ALL',
+                7: 'ALL', 8: 'ALL', 9: 'ALL', 10: 'ALL', 11: 'ALL', 12: 'ALL'}
+
+        self.list_season = list(set(list(self.lut_season.values())))
 
         self.file_name_indicators_raw = dst_dict[self.flag_indicators_data][self.file_name_tag]
         self.folder_name_indicators_raw = dst_dict[self.flag_indicators_data][self.folder_name_tag]
@@ -127,7 +141,7 @@ class DriverAnalysis:
 
             file_path_list_rain2sm = collect_file_list(
                 self.time_run, self.folder_name_scenarios_graph_rain2sm_raw, self.file_name_scenarios_graph_rain2sm_raw,
-                self.alg_template_tags, alert_area_name=group_data_key,
+                self.alg_template_tags, alert_area_name=group_data_key, season_name=self.list_season,
                 time_run=self.time_run, time_from=self.time_range_from, time_to=self.time_range_to)
             file_path_scenarios_graph_rain2sm_collections[group_data_key] = file_path_list_rain2sm
 
@@ -152,8 +166,10 @@ class DriverAnalysis:
 
         self.template_rain_accumulated = 'rain_accumulated_{:}'
         self.template_rain_avg = 'rain_average_{:}'
+        self.template_time_index = 'time'
 
         self.event_n_min = event_n_min
+        self.event_n_max = event_n_max
         self.event_label = event_label
 
     # -------------------------------------------------------------------------------------
@@ -164,6 +180,8 @@ class DriverAnalysis:
 
         logging.info(' ----> Plot scenarios [' + str(self.time_run) + '] ... ')
 
+        season_list = self.list_season
+
         scenarios_sm2event_file_path = self.file_path_scenarios_graph_sm2event_collections
         scenarios_rain2event_file_path = self.file_path_scenarios_graph_rain2event_collections
         scenarios_rain2sm_file_path = self.file_path_scenarios_graph_rain2sm_collections
@@ -172,9 +190,9 @@ class DriverAnalysis:
 
             logging.info(' -----> Alert Area ' + group_data_key + '  ... ')
 
-            file_path_sm2event = scenarios_sm2event_file_path[group_data_key][0]
-            file_path_rain2event = scenarios_rain2event_file_path[group_data_key][0]
-            file_path_rain2sm = scenarios_rain2sm_file_path[group_data_key][0]
+            file_path_sm2event = scenarios_sm2event_file_path[group_data_key]
+            file_path_rain2event = scenarios_rain2event_file_path[group_data_key]
+            file_path_rain2sm = scenarios_rain2sm_file_path[group_data_key]
             file_data = scenarios_collections[group_data_key]
 
             rain_period_list = group_data_alert_value['rain_datasets']['search_period']
@@ -183,17 +201,34 @@ class DriverAnalysis:
 
                 logging.info(' ------> Plot rain against sm ... ')
 
-                folder_name_rain2sm, file_name_rain2sm = os.path.split(file_path_rain2sm)
-                make_folder(folder_name_rain2sm)
+                for season_step, file_path_rain2sm_step in zip(season_list, file_path_rain2sm):
 
-                plot_scenarios_rain2sm(file_data, file_path_rain2sm,
-                                       var_x='soil_moisture', var_y=self.template_rain_accumulated,
-                                       var_z='event_index',
-                                       event_n_min=self.event_n_min, event_label=self.event_label,
-                                       figure_dpi=60,
-                                       extra_args={'rain_type': rain_period_list,
-                                                   'soil_moisture_type': 'average'})
+                    logging.info(' ------> Season ' + season_step + ' ... ')
 
+                    file_data_step = filter_scenarios_dataframe(
+                        file_data,
+                        filter_rain=True, filter_sm=True, filter_event=True,
+                        filter_season=self.filter_season,
+                        tag_column_event='event_n', value_min_event=3, value_max_event=None,
+                        season_lut=self.lut_season, season_name=season_step)
+
+                    folder_name_rain2sm, file_name_rain2sm = os.path.split(file_path_rain2sm_step)
+                    make_folder(folder_name_rain2sm)
+
+                    plot_scenarios_rain2sm(file_data_step, file_path_rain2sm_step,
+                                           var_x='soil_moisture', var_y=self.template_rain_accumulated,
+                                           var_z='event_index',
+                                           event_n_min=self.event_n_min,
+                                           event_label=self.event_label, season_label=season_step,
+                                           figure_dpi=60,
+                                           extra_args={'rain_type': rain_period_list,
+                                                       'soil_moisture_type': 'average'})
+
+                    logging.info(' ------> Season ' + season_step + ' ... DONE')
+
+                logging.info(' ------> Plot rain against sm ... DONE')
+
+                '''
                 #plot_scenarios_rain2sm(file_data, file_path_rain2sm,
                 #                       var_x='soil_moisture_maximum', var_y=self.template_rain_accumulated,
                 #                       var_z='event_index',
@@ -202,9 +237,6 @@ class DriverAnalysis:
                 #                       extra_args={'rain_type': rain_period_list,
                 #                                   'soil_moisture_type': 'max'})
 
-                logging.info(' ------> Plot rain against sm ... DONE')
-
-                '''
                 logging.info(' ------> Plot sm against events ... ')
 
                 folder_name_sm2event, file_name_sm2event = os.path.split(file_path_sm2event)
@@ -240,26 +272,31 @@ class DriverAnalysis:
 
         scenarios_file_path = self.file_path_scenarios_data_collections
 
+        scenarios_collection_tmp = None
         for group_data_key in self.structure_data_group.keys():
 
             logging.info(' -----> Alert Area ' + group_data_key + '  ... ')
 
             file_path = scenarios_file_path[group_data_key]
-            file_data = scenarios_collections[group_data_key]
+            if isinstance(file_path, list):
+                file_path = file_path[0]
 
-            if file_data is not None:
+            if not os.path.exists(file_path):
 
-                if isinstance(file_path, list):
-                    file_path = file_path[0]
+                file_data = scenarios_collections[group_data_key]
+                if file_data is not None:
 
-                folder_name, file_name = os.path.split(file_path)
-                make_folder(folder_name)
+                    folder_name, file_name = os.path.split(file_path)
+                    make_folder(folder_name)
 
-                write_file_csv(file_path, file_data)
+                    write_file_csv(file_path, file_data)
 
-                logging.info(' -----> Alert Area ' + group_data_key + '  ... DONE')
+                    logging.info(' -----> Alert Area ' + group_data_key + '  ... DONE')
+                else:
+                    logging.info(' -----> Alert Area ' + group_data_key + '  ... SKIPPED. Datasets are undefined.')
+
             else:
-                logging.info(' -----> Alert Area ' + group_data_key + '  ... SKIPPED. Datasets are undefined.')
+                logging.info(' -----> Alert Area ' + group_data_key + '  ... SKIPPED. Datasets previously saved.')
 
         logging.info(' ----> Dump scenarios [' + str(self.time_run) + '] ... DONE')
 
@@ -274,6 +311,7 @@ class DriverAnalysis:
         geo_data_alert_area = self.geo_data_alert_area
         group_data_alert_area = self.structure_data_group
         file_path_indicators_collections = self.file_path_indicators_collections
+        file_path_scenarios_collections = self.file_path_scenarios_data_collections
 
         scenarios_collections = {}
         for (group_data_key, group_data_items), geo_data_dframe in zip(group_data_alert_area.items(),
@@ -282,39 +320,51 @@ class DriverAnalysis:
             logging.info(' -----> Alert Area ' + group_data_key + '  ... ')
 
             file_path_indicators_selection = file_path_indicators_collections[group_data_key]
+            file_path_scenarios_selection = file_path_scenarios_collections[group_data_key]
 
-            if file_path_indicators_selection is not None:
+            if isinstance(file_path_scenarios_selection, list):
+                file_path_scenarios_selection = file_path_scenarios_selection[0]
 
-                file_time_list = []
-                file_scenarios_collections = {}
-                for file_path_step in file_path_indicators_selection:
+            if not os.path.exists(file_path_scenarios_selection):
+                if file_path_indicators_selection is not None:
 
-                    file_obj_step = read_obj(file_path_step)
+                    file_time_list = []
+                    file_scenarios_collections = {}
+                    for file_path_step in file_path_indicators_selection:
 
-                    file_time_step = file_obj_step[self.flag_time_data]
-                    file_indicators_step = file_obj_step[self.flag_indicators_data]
-                    file_event_step = file_obj_step[self.flag_event_data]
+                        file_obj_step = read_obj(file_path_step)
 
-                    if (file_indicators_step is not None) and (file_event_step is not None):
-                        file_time_list.append(file_time_step)
+                        file_time_step = file_obj_step[self.flag_time_data]
+                        file_indicators_step = file_obj_step[self.flag_indicators_data]
+                        file_event_step = file_obj_step[self.flag_event_data]
 
-                        file_scenarios_dict = {**file_indicators_step, **file_event_step}
-                        for field_key, field_value in file_scenarios_dict.items():
-                            if field_key not in file_scenarios_collections:
-                                file_scenarios_collections[field_key] = [field_value]
-                            else:
-                                field_tmp = file_scenarios_collections[field_key]
-                                field_tmp.append(field_value)
-                                file_scenarios_collections[field_key] = field_tmp
+                        if (file_indicators_step is not None) and (file_event_step is not None):
+                            file_time_list.append(file_time_step)
 
-                scenarios_df = pd.DataFrame(index=file_time_list, data=file_scenarios_collections)
+                            file_scenarios_dict = {**file_indicators_step, **file_event_step}
+                            for field_key, field_value in file_scenarios_dict.items():
+                                if field_key not in file_scenarios_collections:
+                                    file_scenarios_collections[field_key] = [field_value]
+                                else:
+                                    field_tmp = file_scenarios_collections[field_key]
+                                    field_tmp.append(field_value)
+                                    file_scenarios_collections[field_key] = field_tmp
 
-                logging.info(' -----> Alert Area ' + group_data_key + '  ... DONE')
+                    scenarios_df = pd.DataFrame(index=file_time_list, data=file_scenarios_collections)
+                    scenarios_df.index.name = self.template_time_index
+
+                    logging.info(' -----> Alert Area ' + group_data_key + '  ... DONE')
+                else:
+                    scenarios_df = None
+                    logging.info(' -----> Alert Area ' + group_data_key + '  ... SKIPPED. All datasets are undefined')
+
+                scenarios_collections[group_data_key] = scenarios_df
+
             else:
-                scenarios_df = None
-                logging.info(' -----> Alert Area ' + group_data_key + '  ... SKIPPED. All datasets are undefined')
+                logging.info(' -----> Alert Area ' + group_data_key + '  ... SKIPPED. Datasets previously computed')
 
-            scenarios_collections[group_data_key] = scenarios_df
+                file_df = convert_file_csv2df(file_path_scenarios_selection)
+                scenarios_collections[group_data_key] = file_df
 
         logging.info(' ----> Collect scenarios [' + str(self.time_run) + '] ... DONE')
 
@@ -328,7 +378,7 @@ class DriverAnalysis:
 # -------------------------------------------------------------------------------------
 # Method to collect ancillary file
 def collect_file_list(time_range, folder_name_raw, file_name_raw, template_tags,
-                      alert_area_name=None,
+                      alert_area_name=None, season_name=None,
                       time_run=None, time_from=None, time_to=None):
 
     if (not isinstance(time_range, pd.DatetimeIndex)) and (isinstance(time_range, pd.Timestamp)):
@@ -350,7 +400,7 @@ def collect_file_list(time_range, folder_name_raw, file_name_raw, template_tags,
     file_name_list = []
     for datetime_step in time_range:
         template_values_step = {
-            'alert_area_name': alert_area_name,
+            'alert_area_name': alert_area_name, 'season_name': None,
             'run_datetime': datetime_run, 'run_sub_path_time': datetime_run,
             'destination_indicators_datetime': datetime_step, 'destination_indicators_sub_path_time': datetime_step,
             'destination_scenarios_datetime': datetime_step, 'destination_scenarios_sub_path_time': datetime_step,
@@ -361,12 +411,25 @@ def collect_file_list(time_range, folder_name_raw, file_name_raw, template_tags,
         template_common_keys = set(template_tags).intersection(template_values_step)
         template_common_tags = {common_key: template_tags[common_key] for common_key in template_common_keys}
 
-        folder_name_def = fill_tags2string(folder_name_raw, template_common_tags, template_values_step)
-        file_name_def = fill_tags2string(file_name_raw, template_common_tags, template_values_step)
+        if season_name is None:
+            folder_name_def = fill_tags2string(folder_name_raw, template_common_tags, template_values_step)
+            file_name_def = fill_tags2string(file_name_raw, template_common_tags, template_values_step)
 
-        file_path_def = os.path.join(folder_name_def, file_name_def)
+            file_path_def = os.path.join(folder_name_def, file_name_def)
 
-        file_name_list.append(file_path_def)
+            file_name_list.append(file_path_def)
+
+        else:
+
+            for season_step in season_name:
+                template_values_step['season_name'] = season_step
+
+                folder_name_def = fill_tags2string(folder_name_raw, template_common_tags, template_values_step)
+                file_name_def = fill_tags2string(file_name_raw, template_common_tags, template_values_step)
+
+                file_path_def = os.path.join(folder_name_def, file_name_def)
+
+                file_name_list.append(file_path_def)
 
     return file_name_list
 

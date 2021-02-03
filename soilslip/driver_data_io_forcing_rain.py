@@ -212,7 +212,7 @@ class DriverForcing:
 
     # -------------------------------------------------------------------------------------
     # Method to organize forcing
-    def organize_forcing(self, var_name='rain'):
+    def organize_forcing(self, var_name='rain', var_min=0, var_max=None):
 
         logging.info(' ----> Organize rain forcing ... ')
 
@@ -238,6 +238,13 @@ class DriverForcing:
                                                 file_sep=self.file_columns_sep,
                                                 scale_factor_longitude=self.file_scale_factor_longitude,
                                                 scale_factor_latitude=self.file_scale_factor_latitude)
+
+                    # Filter data using variable limits (if defined)
+                    if var_min is not None:
+                        file_dframe = file_dframe[(file_dframe['data'] >= var_min)]
+                    if var_max is not None:
+                        file_dframe = file_dframe[(file_dframe['data'] <= var_max)]
+
                     if file_dframe is not None:
                         file_time_src = file_dframe.index.unique()
                     else:

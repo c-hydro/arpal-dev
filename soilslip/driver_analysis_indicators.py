@@ -21,6 +21,8 @@ from lib_utils_system import fill_tags2string, make_folder
 from lib_utils_io import write_obj, create_dset
 from lib_utils_tiff import read_file_tiff
 
+from lib_analysis_interpolation_grid import interp_grid2map
+
 # Debug
 import matplotlib.pylab as plt
 ######################################################################################
@@ -35,7 +37,7 @@ class DriverAnalysis:
     def __init__(self, time_step, ancillary_dict, dst_dict, file_list_rain, file_list_sm,
                  alg_ancillary=None, alg_template_tags=None,
                  time_data=None,
-                 geo_data_region=None, geo_data_alert_area=None,
+                 geo_data_region=None, geo_data_alert_area=None, index_data_alert_area=None,
                  group_data=None,
                  flag_forcing_data_rain='rain_data', flag_forcing_data_sm='soil_moisture_data',
                  flag_indicators_time='time',
@@ -63,6 +65,7 @@ class DriverAnalysis:
 
         self.geo_data_region = geo_data_region[self.region_tag]
         self.geo_data_alert_area = geo_data_alert_area
+        self.index_data_alert_area = index_data_alert_area
 
         self.alg_template_tags = alg_template_tags
 
@@ -370,6 +373,7 @@ class DriverAnalysis:
         time_step = self.time_step
         geo_data_region = self.geo_data_region
         geo_data_alert_area = self.geo_data_alert_area
+        index_data_alert_area = self.index_data_alert_area
         group_data_alert_area = self.structure_data_group
 
         geoy_region_1d = geo_data_region['south_north'].values
@@ -387,12 +391,19 @@ class DriverAnalysis:
                 time_step, self.folder_name_dest_indicators_raw, self.file_name_dest_indicators_raw,
                 self.alg_template_tags, alert_area_name=group_data_key)[0]
 
+            # Get index interpolated data between region and alert area domains
+            if group_data_key in list(index_data_alert_area.keys()):
+                index_data = index_data_alert_area[group_data_key]
+            else:
+                index_data = None
+
             if not os.path.exists(file_path_dest):
 
                 geoy_out_1d = geo_data_dframe['south_north'].values
                 geox_out_1d = geo_data_dframe['west_east'].values
-                mask_2d = geo_data_dframe.values
 
+                # Get subdomain mask, longitudes and latitudes
+                mask_out_2d = geo_data_dframe.values
                 geox_out_2d, geoy_out_2d = np.meshgrid(geox_out_1d, geoy_out_1d)
 
                 time_delta_max = find_maximum_delta(group_data_items['rain_datasets']['search_period'])
@@ -424,16 +435,24 @@ class DriverAnalysis:
 
                         if file_list.__len__() > 1:
 
-                            data_3d = np.zeros(shape=[geox_region_2d.shape[0], geoy_region_2d.shape[1], file_list.__len__()])
-                            data_3d[:, :, :] = np.nan
+                            data_out_3d = np.zeros(shape=[geox_out_2d.shape[0], geoy_out_2d.shape[1], file_list.__len__()])
+                            data_out_3d[:, :, :] = np.nan
                             data_time = []
                             for file_id, (file_step, timestamp_step) in enumerate(zip(file_list, time_range)):
-                                data_2d, proj, geotrans = read_file_tiff(file_step)
-                                data_3d[:, :, file_id] = data_2d
+                                data_out_2d, proj, geotrans = read_file_tiff(file_step)
+
+                                # Grid datasets over subdomain mask
+                                values_out_interp = interp_grid2map(geox_region_2d, geoy_region_2d,
+                                                                    data_out_2d.values,
+                                                                    geox_out_2d, geoy_out_2d,
+                                                                    index_out=index_data)
+                                values_out_interp[mask_out_2d == 0] = np.nan
+
+                                data_out_3d[:, :, file_id] = values_out_interp
                                 data_time.append(timestamp_step)
 
                             file_obj = create_dset(
-                                data_3d, mask_region_2d, geox_region_2d, geoy_region_2d,
+                                data_out_3d, mask_out_2d, geox_out_2d, geoy_out_2d,
                                 var_data_time=data_time, var_data_name=var_name,
                                 var_geo_name='mask', var_data_attrs=None, var_geo_attrs=None,
                                 coord_name_x='longitude', coord_name_y='latitude', coord_name_time='time',

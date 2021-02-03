@@ -19,6 +19,8 @@ from lib_utils_geo import get_file_raster
 from lib_utils_io import read_file_json, read_obj, write_obj, create_darray_2d
 from lib_utils_system import fill_tags2string, make_folder
 
+from lib_analysis_interpolation_grid import interp_grid2index
+
 # Debug
 import matplotlib.pylab as plt
 ######################################################################################
@@ -33,10 +35,18 @@ class DriverGeoGrid:
     def __init__(self, src_dict, dst_dict,
                  group_data=None, alg_template_tags=None,
                  flag_geo_data='geo_data', flag_basin_data='basin_data',
+                 flag_geo_region_data='geo_region',
+                 flag_geo_alert_area_data='geo_alert_area', flag_index_alert_area_data='index_alert_area',
+                 flag_geo_basin_data='geo_basin',
                  flag_geo_updating=True):
 
         self.flag_geo_data = flag_geo_data
         self.flag_basin_data = flag_basin_data
+
+        self.flag_geo_region_data = flag_geo_region_data
+        self.flag_geo_alert_area_data = flag_geo_alert_area_data
+        self.flag_index_alert_area_data = flag_index_alert_area_data
+        self.flag_geo_basin_data = flag_geo_basin_data
 
         self.alg_template_tags = alg_template_tags
         self.file_name_tag = 'file_name'
@@ -45,6 +55,7 @@ class DriverGeoGrid:
         self.region_tag = 'region'
         self.alert_area_vector_tag = 'alert_area_vector'
         self.alert_area_raster_tag = 'alert_area_raster'
+        self.alert_area_index_tag = 'alert_area_index'
 
         self.structure_region_group = {'region': {'name': 'Liguria'}}
         self.structure_data_group = group_data
@@ -71,6 +82,7 @@ class DriverGeoGrid:
         self.dst_dict_geo_region = dst_dict[self.flag_geo_data][self.region_tag]
         self.dst_dict_geo_alert_area_vector = dst_dict[self.flag_geo_data][self.alert_area_vector_tag]
         self.dst_dict_geo_alert_area_raster = dst_dict[self.flag_geo_data][self.alert_area_raster_tag]
+        self.dst_dict_geo_alert_area_index = dst_dict[self.flag_geo_data][self.alert_area_index_tag]
         self.dst_dict_basin = dst_dict[self.flag_basin_data]
 
         self.file_path_region = os.path.join(self.dst_dict_geo_region[self.folder_name_tag],
@@ -80,6 +92,8 @@ class DriverGeoGrid:
             self.dst_dict_geo_alert_area_vector[self.folder_name_tag], self.dst_dict_geo_alert_area_vector[self.file_name_tag])
         self.file_path_alert_area_raster_obj = self.collect_file_obj(
             self.dst_dict_geo_alert_area_raster[self.folder_name_tag], self.dst_dict_geo_alert_area_raster[self.file_name_tag])
+        self.file_path_alert_area_index_obj = self.collect_file_obj(
+            self.dst_dict_geo_alert_area_raster[self.folder_name_tag], self.dst_dict_geo_alert_area_index[self.file_name_tag])
 
         self.dset_geo_region = self.read_geo_data_region()
         self.dset_geo_alert_area = self.read_geo_data_alert_area()
@@ -241,9 +255,71 @@ class DriverGeoGrid:
     # -------------------------------------------------------------------------------------
 
     # -------------------------------------------------------------------------------------
+    # Method to compute index data of alert area
+    def compute_index_data_alert_area(self):
+
+        file_path_alert_area_index = self.file_path_alert_area_index_obj
+
+        geoy_region_1d = self.dset_geo_region[self.region_tag]['south_north'].values
+        geox_region_1d = self.dset_geo_region[self.region_tag]['west_east'].values
+        geox_region_2d, geoy_region_2d = np.meshgrid(geox_region_1d, geoy_region_1d)
+
+        dset_geo_alert_area = self.dset_geo_alert_area
+
+        dset_index_alert_area = {}
+        for group_key, group_data in self.structure_data_group.items():
+
+            file_path = file_path_alert_area_index[group_key]
+            geo_alert_area = dset_geo_alert_area[group_key]
+
+            if self.flag_geo_updating:
+                if os.path.exists(file_path):
+                    os.remove(file_path)
+
+            if not os.path.exists(file_path):
+
+                geox_alert_area_1d = geo_alert_area['west_east'].values
+                geoy_alert_area_1d = geo_alert_area['south_north'].values
+                geox_alert_area_2d, geoy_alert_area_2d = np.meshgrid(geox_alert_area_1d, geoy_alert_area_1d)
+
+                index_alert_area_2d = interp_grid2index(geox_region_2d, geoy_region_2d,
+                                                        geox_alert_area_2d, geoy_alert_area_2d,
+                                                        nodata=-9999, interp_method='nearest')
+
+                folder_name, file_name = os.path.split(file_path)
+                make_folder(folder_name)
+
+                write_obj(file_path, index_alert_area_2d)
+
+            else:
+                index_alert_area_2d = read_obj(file_path)
+
+            dset_index_alert_area[group_key] = index_alert_area_2d
+
+        return dset_index_alert_area
+
+    # -------------------------------------------------------------------------------------
+
+    # -------------------------------------------------------------------------------------
     # Method to organize geographical data
     def organize_data(self):
-        pass
+
+        # Starting info
+        logging.info(' ----> Organize grid information ... ')
+
+        # Compute alert area index
+        dset_index_alert_area = self.compute_index_data_alert_area()
+
+        # Create geo data collections
+        geo_data_collections = {self.flag_geo_region_data: self.dset_geo_region,
+                                self.flag_geo_alert_area_data: self.dset_geo_alert_area,
+                                self.flag_index_alert_area_data: dset_index_alert_area,
+                                self.flag_geo_basin_data: self.dset_basins}
+
+        # Ending info
+        logging.info(' ----> Organize grid information ... DONE')
+
+        return geo_data_collections
     # -------------------------------------------------------------------------------------
 
 # -------------------------------------------------------------------------------------

@@ -14,11 +14,11 @@ import tempfile
 import rasterio
 import os
 
-from numpy import zeros, min, max, reshape, flipud, savetxt
+from numpy import zeros, min, max, reshape, flipud, savetxt, argwhere
 
 from lib_utils_io import create_filename_tmp
 from lib_utils_process import exec_process
-from lib_utils_system import random_string
+from lib_utils_system import random_string, make_folder
 
 # Debug
 # import matplotlib.pylab as plt
@@ -64,9 +64,11 @@ def interp_point2grid(data_in_1d, geox_in_1d, geoy_in_1d, geox_out_2d, geoy_out_
     data_in_ws[:, 2] = data_in_1d
 
     # Create csv file
+    make_folder(os.path.split(file_name_csv)[0])
     create_point_csv(file_name_csv, data_in_ws, var_name_data, var_name_geox, var_name_geoy)
 
     # Create vrt file
+    make_folder(os.path.split(file_name_vrt)[0])
     create_point_vrt(file_name_vrt, file_name_csv, var_name_layer, var_name_data, var_name_geox, var_name_geoy)
 
     # Grid option(s)
