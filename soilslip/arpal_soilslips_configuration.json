@@ -9,8 +9,8 @@
       "algorithm": "Soil-slips tool developed by CIMA Research Foundation"
     },
     "flags": {
-      "__comment__": "running_mode values: analyzer, publisher",
-      "running_mode": ["analyzer","publisher"],
+      "__comment__": "running_mode values: organizer, analyzer, publisher",
+      "running_mode": ["analyzer", "publisher"],
       "updating_static_data": false,
       "updating_dynamic_ancillary_rain": false,
       "updating_dynamic_ancillary_sm": false,

@@ -12,11 +12,11 @@ __author__ =
 __library__ = 'ARPAL'
 
 General command line:
-python3 arpal_soilslip_Main.py -settings_file configuration.json -time "YYYY-MM-DD HH:MM"
+python3 arpal_soilslip_main.py -settings_file configuration.json -time "YYYY-MM-DD HH:MM"
 
 Version(s):
 20210202 (1.2.0) --> Fix bugs in creating rain datasets; fix bugs in output csv scenarios files
-20201125 (1.1.0) --> Update of reader and writer method for rain and soil moisture variables
+20201125 (1.1.0) --> Update of reader and writer methods for rain and soil moisture variables
 20200515 (1.0.0) --> Beta release
 """
 
@@ -109,7 +109,7 @@ def main():
 
     # -------------------------------------------------------------------------------------
     # Activate analyzer mode
-    if 'analyzer' in data_settings['algorithm']['flags']['running_mode']:
+    if activate_algorithm_step(['organizer', 'analyzer'], data_settings['algorithm']['flags']['running_mode']):
 
         # Iterate over time(s)
         for time_step in time_range:
@@ -126,7 +126,8 @@ def main():
                 group_data=data_settings['algorithm']['ancillary']['group'],
                 alg_template_tags=data_settings['algorithm']['template'],
                 flag_ancillary_updating=data_settings['algorithm']['flags']['updating_dynamic_ancillary_rain'])
-            driver_data_forcing_rain.organize_forcing()
+            if activate_algorithm_step(['organizer'], data_settings['algorithm']['flags']['running_mode']):
+                driver_data_forcing_rain.organize_forcing()
 
             # Soil moisture datasets
             driver_data_forcing_sm = DriverForcingSM(
@@ -140,7 +141,8 @@ def main():
                 group_data=data_settings['algorithm']['ancillary']['group'],
                 alg_template_tags=data_settings['algorithm']['template'],
                 flag_ancillary_updating=data_settings['algorithm']['flags']['updating_dynamic_ancillary_sm'])
-            driver_data_forcing_sm.organize_forcing()
+            if activate_algorithm_step(['organizer'], data_settings['algorithm']['flags']['running_mode']):
+                driver_data_forcing_sm.organize_forcing()
 
             # Analysis datasets to define indicators
             driver_analysis_indicators = DriverAnalysisIndicators(
@@ -156,17 +158,19 @@ def main():
                 group_data=data_settings['algorithm']['ancillary']['group'],
                 alg_template_tags=data_settings['algorithm']['template'],
                 flag_dest_updating=data_settings['algorithm']['flags']['updating_dynamic_indicators'])
-            analysis_data_rain = driver_analysis_indicators.organize_analysis_rain()
-            analysis_data_sm = driver_analysis_indicators.organize_analysis_sm()
 
-            driver_analysis_indicators.save_analysis(analysis_data_sm, analysis_data_rain, geo_point_collection)
+            if activate_algorithm_step(['analyzer'], data_settings['algorithm']['flags']['running_mode']):
+                analysis_data_rain = driver_analysis_indicators.organize_analysis_rain()
+                analysis_data_sm = driver_analysis_indicators.organize_analysis_sm()
+
+                driver_analysis_indicators.save_analysis(analysis_data_sm, analysis_data_rain, geo_point_collection)
         # -------------------------------------------------------------------------------------
 
     # -------------------------------------------------------------------------------------
 
     # -------------------------------------------------------------------------------------
     # Activate publisher mode
-    if 'publisher' in data_settings['algorithm']['flags']['running_mode']:
+    if activate_algorithm_step(['publisher'], data_settings['algorithm']['flags']['running_mode']):
 
         # -------------------------------------------------------------------------------------
         # Analysis datasets to define scenarios
@@ -200,6 +204,19 @@ def main():
 
     # -------------------------------------------------------------------------------------
 
+# -------------------------------------------------------------------------------------
+
+
+# -------------------------------------------------------------------------------------
+# Method to activate algorithm part
+def activate_algorithm_step(algorithm_mode_step, algorithm_mode_list, algorithm_mode_type='any'):
+    if algorithm_mode_type == 'any':
+        algorithm_mode_flag = any(item in algorithm_mode_step for item in algorithm_mode_list)
+    elif algorithm_mode_type == 'all':
+        algorithm_mode_flag = all(item in algorithm_mode_step for item in algorithm_mode_list)
+    else:
+        algorithm_mode_flag = any(item in algorithm_mode_step for item in algorithm_mode_list)
+    return algorithm_mode_flag
 # -------------------------------------------------------------------------------------
 
 
