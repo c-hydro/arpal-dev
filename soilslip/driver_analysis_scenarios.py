@@ -36,7 +36,7 @@ class DriverAnalysis:
     def __init__(self, time_run, time_range, ancillary_dict, dst_dict,
                  alg_ancillary=None, alg_template_tags=None,
                  geo_data_region=None, geo_data_alert_area=None,
-                 group_data=None,
+                 group_data=None, plot_data=None,
                  flag_time_data='time',
                  flag_event_data='indicators_event',
                  flag_indicators_data='indicators_data', flag_scenarios_data='scenarios_data',
@@ -81,7 +81,13 @@ class DriverAnalysis:
 
         self.structure_data_group = group_data
 
-        self.filter_season = filter_season
+        if plot_data is not None:
+            if 'filter_season' in list(plot_data.keys()):
+                self.filter_season = plot_data['filter_season']
+            else:
+                self.filter_season = filter_season
+        else:
+            self.filter_season = filter_season
 
         if self.filter_season:
             self.lut_season = {
@@ -164,12 +170,30 @@ class DriverAnalysis:
         self.file_path_scenarios_graph_rain2event_collections = file_path_scenarios_graph_rain2event_collections
         self.file_path_scenarios_graph_rain2sm_collections = file_path_scenarios_graph_rain2sm_collections
 
-        self.template_rain_accumulated = 'rain_accumulated_{:}'
-        self.template_rain_avg = 'rain_average_{:}'
+        self.template_rain_point_accumulated = 'rain_accumulated_{:}'
+        self.template_rain_point_avg = 'rain_average_{:}'
+        self.template_sm_point_first = 'sm_value_first'
+        self.template_sm_point_last = 'sm_value_last'
+        self.template_sm_point_max = 'sm_value_max'
+        self.template_sm_point_avg = 'sm_value_avg'
         self.template_time_index = 'time'
 
-        self.event_n_min = event_n_min
-        self.event_n_max = event_n_max
+        if plot_data is not None:
+            if 'filter_event_min' in list(plot_data.keys()):
+                self.event_n_min = plot_data['filter_event_min']
+            else:
+                self.event_n_min = event_n_min
+        else:
+            self.event_n_min = event_n_min
+
+        if plot_data is not None:
+            if 'filter_event_max' in list(plot_data.keys()):
+                self.event_n_max = plot_data['filter_event_max']
+            else:
+                self.event_n_max = event_n_max
+        else:
+            self.event_n_max = event_n_max
+
         self.event_label = event_label
 
     # -------------------------------------------------------------------------------------
@@ -181,6 +205,8 @@ class DriverAnalysis:
         logging.info(' ----> Plot scenarios [' + str(self.time_run) + '] ... ')
 
         season_list = self.list_season
+        event_n_min = self.event_n_min
+        event_n_max = self.event_n_max
 
         scenarios_sm2event_file_path = self.file_path_scenarios_graph_sm2event_collections
         scenarios_rain2event_file_path = self.file_path_scenarios_graph_rain2event_collections
@@ -197,6 +223,13 @@ class DriverAnalysis:
 
             rain_period_list = group_data_alert_value['rain_datasets']['search_period']
 
+            template_rain_point = []
+            for rain_period_step in rain_period_list:
+                template_rain_step = self.template_rain_point_accumulated.format(rain_period_step)
+                template_rain_point.append(template_rain_step)
+
+            template_sm_point = self.template_sm_point_avg
+
             if file_data is not None:
 
                 logging.info(' ------> Plot rain against sm ... ')
@@ -207,18 +240,21 @@ class DriverAnalysis:
 
                     file_data_step = filter_scenarios_dataframe(
                         file_data,
+                        tag_column_sm=template_sm_point,
+                        tag_column_rain=template_rain_point,
                         filter_rain=True, filter_sm=True, filter_event=True,
                         filter_season=self.filter_season,
-                        tag_column_event='event_n', value_min_event=3, value_max_event=None,
+                        tag_column_event='event_n', value_min_event=event_n_min, value_max_event=event_n_max,
                         season_lut=self.lut_season, season_name=season_step)
 
                     folder_name_rain2sm, file_name_rain2sm = os.path.split(file_path_rain2sm_step)
                     make_folder(folder_name_rain2sm)
 
                     plot_scenarios_rain2sm(file_data_step, file_path_rain2sm_step,
-                                           var_x='soil_moisture', var_y=self.template_rain_accumulated,
+                                           var_x=self.template_sm_point_avg,
+                                           var_y=self.template_rain_point_accumulated,
                                            var_z='event_index',
-                                           event_n_min=self.event_n_min,
+                                           event_n_min=event_n_min, event_n_max=event_n_max,
                                            event_label=self.event_label, season_label=season_step,
                                            figure_dpi=60,
                                            extra_args={'rain_type': rain_period_list,
@@ -281,6 +317,10 @@ class DriverAnalysis:
             if isinstance(file_path, list):
                 file_path = file_path[0]
 
+            if self.flag_dest_updating:
+                if os.path.exists(file_path):
+                    os.remove(file_path)
+
             if not os.path.exists(file_path):
 
                 file_data = scenarios_collections[group_data_key]
@@ -324,6 +364,10 @@ class DriverAnalysis:
 
             if isinstance(file_path_scenarios_selection, list):
                 file_path_scenarios_selection = file_path_scenarios_selection[0]
+
+            if self.flag_dest_updating:
+                if os.path.exists(file_path_scenarios_selection):
+                    os.remove(file_path_scenarios_selection)
 
             if not os.path.exists(file_path_scenarios_selection):
                 if file_path_indicators_selection is not None:

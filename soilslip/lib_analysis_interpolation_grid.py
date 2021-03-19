@@ -19,7 +19,7 @@ def interp_grid2index(lons_in, lats_in, lons_out, lats_out, nodata=-9999, interp
         lons_in_2d = lons_in
         lats_in_2d = lats_in
     else:
-        logging.error(' ===> Geographical datasets input dimensions in bed format')
+        logging.error(' ===> Geographical datasets input dimensions in bad format')
         raise IOError('Geographical data format not allowed')
 
     if lons_out.shape.__len__() == 1 and lats_out.shape.__len__() == 1:
@@ -28,7 +28,7 @@ def interp_grid2index(lons_in, lats_in, lons_out, lats_out, nodata=-9999, interp
         lons_out_2d = lons_out
         lats_out_2d = lats_out
     else:
-        logging.error(' ===> Geographical datasets output dimensions in bed format')
+        logging.error(' ===> Geographical datasets output dimensions in bad format')
         raise IOError('Geographical data format not allowed')
 
     index_in = np.arange(0, shape_in)

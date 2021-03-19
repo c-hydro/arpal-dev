@@ -14,7 +14,7 @@ logging.getLogger("PIL").setLevel(logging.WARNING)
 def plot_scenarios_rain2sm(file_data, file_path,
                            var_x='soil_moisture', var_y='rain', var_z='event_index',
                            var_x_limits=None, var_y_limits=None, var_z_limits=None,
-                           event_n_min=0, event_label=True, season_label='NA',
+                           event_n_min=0, event_n_max=None, event_label=True, season_label='NA',
                            figure_dpi=120, extra_args=None,
                            axes_x_template='soil moisture {:} [-]',
                            axes_y_template='rain accumulated {:} [mm]'):

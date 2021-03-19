@@ -2,8 +2,8 @@
 """
 ARPAL Processing Tool - SOIL SLIPS
 
-__date__ = '20210202'
-__version__ = '1.2.0'
+__date__ = '20210319'
+__version__ = '1.2.1'
 __author__ =
         'Fabio Delogu (fabio.delogu@cimafoundation.org',
         'Michele Cicoria (michele.cicoria@arpal.liguria.it)',
@@ -15,6 +15,7 @@ General command line:
 python3 arpal_soilslip_main.py -settings_file configuration.json -time "YYYY-MM-DD HH:MM"
 
 Version(s):
+20210319 (1.2.1) --> Fix bugs in creating output indicators workspace files and csv and png scenarios files
 20210202 (1.2.0) --> Fix bugs in creating rain datasets; fix bugs in output csv scenarios files
 20201125 (1.1.0) --> Update of reader and writer methods for rain and soil moisture variables
 20200515 (1.0.0) --> Beta release
@@ -42,8 +43,8 @@ from lib_utils_time import set_time
 
 # -------------------------------------------------------------------------------------
 # Algorithm information
-alg_version = '1.2.0'
-alg_release = '2021-02-02'
+alg_version = '1.2.1'
+alg_release = '2021-03-19'
 alg_name = 'SOIL SLIPS MAIN'
 # Algorithm parameter(s)
 time_format = '%Y-%m-%d %H:%M'
@@ -160,8 +161,8 @@ def main():
                 flag_dest_updating=data_settings['algorithm']['flags']['updating_dynamic_indicators'])
 
             if activate_algorithm_step(['analyzer'], data_settings['algorithm']['flags']['running_mode']):
-                analysis_data_rain = driver_analysis_indicators.organize_analysis_rain()
                 analysis_data_sm = driver_analysis_indicators.organize_analysis_sm()
+                analysis_data_rain = driver_analysis_indicators.organize_analysis_rain()
 
                 driver_analysis_indicators.save_analysis(analysis_data_sm, analysis_data_rain, geo_point_collection)
         # -------------------------------------------------------------------------------------
@@ -181,6 +182,7 @@ def main():
             geo_data_region=driver_data_geo_grid.dset_geo_region,
             geo_data_alert_area=driver_data_geo_grid.dset_geo_alert_area,
             group_data=data_settings['algorithm']['ancillary']['group'],
+            plot_data=data_settings['algorithm']['ancillary']['plot'],
             alg_template_tags=data_settings['algorithm']['template'],
             flag_dest_updating=data_settings['algorithm']['flags']['updating_dynamic_scenarios'])
 

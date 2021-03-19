@@ -18,13 +18,21 @@ lut_season_default = {
 # -------------------------------------------------------------------------------------
 # Method to filter scenarios dataframe
 def filter_scenarios_dataframe(df_scenarios,
-                               tag_column_rain='rain', filter_rain=True, value_min_rain=0, value_max_rain=None,
-                               tag_column_sm='soil_moisture', filter_sm=True, value_min_sm=0, value_max_sm=1,
-                               tag_column_event='event_n', filter_event=True, value_min_event=1, value_max_event=None,
+                               tag_column_rain='rain_accumulated_3H', filter_rain=True,
+                               value_min_rain=0, value_max_rain=None,
+                               tag_column_sm='sm_max', filter_sm=True,
+                               value_min_sm=0, value_max_sm=1,
+                               tag_column_event='event_n', filter_event=True,
+                               value_min_event=1, value_max_event=None,
                                tag_column_season='seasons', filter_season=True,
                                season_lut=None, season_name='ALL'):
 
     dframe_scenarios = deepcopy(df_scenarios)
+
+    if not isinstance(tag_column_rain, list):
+        tag_column_rain = [tag_column_rain]
+    if not isinstance(tag_column_sm, list):
+        tag_column_sm = [tag_column_sm]
 
     if filter_season:
         if season_lut is not None:
@@ -37,17 +45,33 @@ def filter_scenarios_dataframe(df_scenarios,
 
     # Filter by rain not valid values
     if filter_rain:
-        if value_min_rain is not None:
-            dframe_scenarios = dframe_scenarios.drop(dframe_scenarios[dframe_scenarios[tag_column_rain] < value_min_rain].index)
-        if value_max_rain is not None:
-            dframe_scenarios = dframe_scenarios.drop(dframe_scenarios[dframe_scenarios[tag_column_rain] > value_max_rain].index)
+        for tag_column_step in tag_column_rain:
+            logging.info(' -------> Filter variable ' + tag_column_step + ' ... ')
+            if tag_column_step in list(dframe_scenarios.columns):
+                if value_min_rain is not None:
+                    dframe_scenarios = dframe_scenarios.drop(dframe_scenarios[dframe_scenarios[tag_column_step] < value_min_rain].index)
+                if value_max_rain is not None:
+                    dframe_scenarios = dframe_scenarios.drop(dframe_scenarios[dframe_scenarios[tag_column_step] > value_max_rain].index)
+                logging.info(' -------> Filter variable ' + tag_column_step + ' ... DONE')
+            else:
+                logging.info(' -------> Filter variable ' + tag_column_step + ' ... FAILED')
+                logging.warning(' ===> Filter rain datasets failed. Variable ' + tag_column_step +
+                                ' is not in the selected dataframe')
 
     # Filter by soil moisture not valid values
     if filter_sm:
-        if value_min_sm is not None:
-            dframe_scenarios = dframe_scenarios.drop(dframe_scenarios[dframe_scenarios[tag_column_sm] < value_min_sm].index)
-        if value_max_sm is not None:
-            dframe_scenarios = dframe_scenarios.drop(dframe_scenarios[dframe_scenarios[tag_column_sm] > value_max_sm].index)
+        for tag_column_step in tag_column_sm:
+            logging.info(' -------> Filter variable ' + tag_column_step + ' ... ')
+            if tag_column_step in list(dframe_scenarios.columns):
+                if value_min_sm is not None:
+                    dframe_scenarios = dframe_scenarios.drop(dframe_scenarios[dframe_scenarios[tag_column_step] < value_min_sm].index)
+                if value_max_sm is not None:
+                    dframe_scenarios = dframe_scenarios.drop(dframe_scenarios[dframe_scenarios[tag_column_step] > value_max_sm].index)
+                logging.info(' -------> Filter variable ' + tag_column_step + ' ... DONE')
+            else:
+                logging.info(' -------> Filter variable ' + tag_column_step + ' ... FAILED')
+                logging.warning(' ===> Filter soil moisture datasets failed. Variable ' + tag_column_step +
+                                ' is not in the selected dataframe')
 
     # Filter by event n
     if filter_event:

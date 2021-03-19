@@ -102,11 +102,16 @@ class DriverAnalysis:
 
         self.file_path_dest_indicators_expected = file_path_dest_indicators_expected
 
+        self.template_struct_ts = 'data_time_series'
+        self.template_struct_obj = 'data_obj'
+
         self.template_rain_accumulated = 'rain_accumulated_{:}'
         self.template_rain_avg = 'rain_average_{:}'
 
-        self.template_sm_max = 'soil_moisture_maximum'
-        self.template_sm_avg = 'soil_moisture_average'
+        self.template_sm_point_first = 'sm_value_first'
+        self.template_sm_point_last = 'sm_value_last'
+        self.template_sm_point_max = 'sm_value_max'
+        self.template_sm_point_avg = 'sm_value_avg'
 
         self.analysis_event_undefined = {'event_n': 0, 'event_threshold': 'white', 'event_index': 0}
 
@@ -134,8 +139,15 @@ class DriverAnalysis:
             if not os.path.exists(file_path_dest):
 
                 group_soilslip_select = group_soilslip[group_data_key]
-                group_analysis_sm_select = group_analysis_sm[group_data_key]
-                group_analysis_rain_select = group_analysis_rain[group_data_key]
+
+                if group_analysis_sm[group_data_key] is not None:
+                    group_analysis_sm_select = group_analysis_sm[group_data_key][self.template_struct_obj]
+                else:
+                    group_analysis_sm_select = None
+                if group_analysis_rain[group_data_key] is not None:
+                    group_analysis_rain_select = group_analysis_rain[group_data_key][self.template_struct_obj]
+                else:
+                    group_analysis_rain_select = None
 
                 if group_analysis_sm_select is not None:
                     if time_step in list(group_soilslip_select.index):
@@ -163,7 +175,7 @@ class DriverAnalysis:
                                                           ['event_n', 'event_threshold', 'event_index'])
                 else:
                     analysis_event = self.analysis_event_undefined
-                    logging.warning(' ===> SoilSlip dataset is null')
+                    logging.warning(' ===> SoilSlip datasets is null. No events reported')
 
                 if (analysis_data is not None) and (analysis_event is not None):
 
@@ -197,13 +209,22 @@ class DriverAnalysis:
         if data_keys is None:
             if isinstance(data_obj, pd.Series):
                 data_keys = list(data_obj.index)
+                create_dict = True
+            elif isinstance(data_obj, dict):
+                create_dict = False
             else:
                 logging.error(' ===> DataType not allowed')
                 raise NotImplementedError('Case not implemented yet')
+        else:
+            logging.error(' ===> Columns format not allowed')
+            raise NotImplementedError('Case not implemented yet')
 
-        for key in data_keys:
-            values = data_obj[key]
-            data_dict[key] = values
+        if create_dict:
+            for key in data_keys:
+                values = data_obj[key]
+                data_dict[key] = values
+        else:
+            data_dict = data_obj
 
         return data_dict
 
@@ -259,6 +280,7 @@ class DriverAnalysis:
 
                 if file_analysis:
 
+                    analysis_collections = {}
                     if file_list_check[0].endswith('.nc'):
                         file_data_raw = xr.open_mfdataset(file_list_check, combine='by_coords')
                     elif file_list_check[0].endswith('.tiff'):
@@ -310,25 +332,49 @@ class DriverAnalysis:
                         file_ts = [file_ts]
                         file_values_mean = [file_values_mean]
 
+                    # Soil moisture average time-series
                     analysis_df = pd.DataFrame(index=file_ts, data=file_values_mean,
-                                               columns=[var_name]).fillna(value=pd.NA)
+                                               columns=[self.template_struct_ts]).fillna(value=pd.NA)
 
-                    tag_sm_avg = self.template_sm_avg
-                    analysis_df[tag_sm_avg] = analysis_df[var_name].mean()
+                    analysis_collections[self.template_struct_ts] = {}
+                    analysis_collections[self.template_struct_ts] = analysis_df
 
-                    tag_sm_max = self.template_sm_max
-                    analysis_df[tag_sm_max] = analysis_df[var_name].max()
+                    # Soil moisture first value in tne selected period
+                    tag_sm_point_first = self.template_sm_point_first
+                    file_time_first = pd.Timestamp(file_time[0]).strftime('%Y%m%d_%H%M')
+                    file_value_first = float(file_values_mean[0])
+                    tag_sm_point_first = tag_sm_point_first.format(file_time_first)
 
-                    analysis_ts = analysis_df.max()
+                    # Soil moisture last value in tne selected period
+                    tag_sm_point_last = self.template_sm_point_last
+                    file_time_last = pd.Timestamp(file_time[-1]).strftime('%Y%m%d_%H%M')
+                    file_value_last = float(file_values_mean[-1])
+                    tag_sm_point_last = tag_sm_point_last.format(file_time_last)
+
+                    # Soil moisture average in tne selected period
+                    tag_sm_point_avg = self.template_sm_point_avg
+                    file_value_avg = float(analysis_df[self.template_struct_ts].mean())
+
+                    # Soil moisture maximum in tne selected period
+                    tag_sm_point_max = self.template_sm_point_max
+                    file_value_max = float(analysis_df[self.template_struct_ts].max())
+
+                    #analysis_ts = analysis_df.max()
+
+                    analysis_collections[self.template_struct_obj] = {}
+                    analysis_collections[self.template_struct_obj][tag_sm_point_first] = file_value_first
+                    analysis_collections[self.template_struct_obj][tag_sm_point_last] = file_value_last
+                    analysis_collections[self.template_struct_obj][tag_sm_point_avg] = file_value_avg
+                    analysis_collections[self.template_struct_obj][tag_sm_point_max] = file_value_max
 
                     logging.info(' -----> Alert Area ' + group_data_key + ' ... DONE')
 
                 else:
-                    analysis_ts = None
+                    analysis_collections = None
                     logging.warning(' ===> Soil moisture data are not available')
                     logging.info(' -----> Alert Area ' + group_data_key + ' ... SKIPPED. Datasets are not available.')
 
-                group_analysis[group_data_key] = analysis_ts
+                group_analysis[group_data_key] = analysis_collections
 
             else:
 
@@ -468,33 +514,45 @@ class DriverAnalysis:
                         raise NotImplementedError('Format is not implemented yet')
 
                     values_mean = file_obj[var_name].mean(dim=['south_north', 'west_east']).values
-                    analysis_df = pd.DataFrame(index=time_range, data=values_mean, columns=[var_name]).fillna(value=pd.NA)
 
+                    analysis_df = pd.DataFrame(index=time_range, data=values_mean,
+                                               columns=[self.template_struct_ts]).fillna(value=pd.NA)
+
+                    analysis_obj = {}
                     for time_interval_value in group_data_items['rain_datasets']['search_period']:
-                        logging.info(' ------> Compute rolling sum for ' + time_interval_value + ' ... ')
+                        logging.info(' ------> Compute sum and avg values for ' + time_interval_value + ' ... ')
 
                         time_period, time_frequency = split_time_parts(time_interval_value)
 
                         tag_rain_accumulated = self.template_rain_accumulated.format(time_interval_value)
-                        analysis_df[tag_rain_accumulated] = analysis_df[var_name].rolling(
-                            time_interval_value, min_periods=time_period).sum()
+                        # resample_df_sum = analysis_df[var_name].rolling(time_interval_value, min_periods=time_period).sum()
+                        resample_df_sum = analysis_df[self.template_struct_ts].resample(time_interval_value,
+                                                                                      label='right').sum()[:-1]
+                        analysis_df[tag_rain_accumulated] = resample_df_sum
 
                         tag_rain_avg = self.template_rain_avg.format(time_interval_value)
-                        analysis_df[tag_rain_avg] = analysis_df[var_name].rolling(
-                            time_interval_value, min_periods=time_period).mean()
+                        # resample_df_avg = analysis_df[var_name].rolling(time_interval_value, min_periods=time_period).mean()
+                        resample_df_avg = analysis_df[self.template_struct_ts].resample(time_interval_value,
+                                                                                      label='right').mean()[:-1]
+                        analysis_df[tag_rain_avg] = resample_df_avg
 
-                        logging.info(' ------> Compute rolling sum for ' + time_interval_value + ' ... DONE')
+                        analysis_obj[tag_rain_accumulated] = float(resample_df_sum.max())
+                        analysis_obj[tag_rain_avg] = float(resample_df_avg.max())
 
-                    analysis_ts = analysis_df.max()
+                        logging.info(' ------> Compute sum and avg values for ' + time_interval_value + ' ... DONE')
+
+                    #analysis_ts = analysis_df.max()
+
+                    analysis_collections = {self.template_struct_ts: analysis_df, self.template_struct_obj: analysis_obj}
 
                     logging.info(' -----> Alert Area ' + group_data_key + ' ... DONE')
 
                 else:
-                    analysis_ts = None
+                    analysis_collections = None
                     logging.warning(' ===> Rain data are not available')
                     logging.info(' -----> Alert Area ' + group_data_key + ' ... SKIPPED. Datasets are not available.')
 
-                group_analysis[group_data_key] = analysis_ts
+                group_analysis[group_data_key] = analysis_collections
 
             else:
 
