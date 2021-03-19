@@ -382,6 +382,9 @@ class DriverAnalysis:
                         file_indicators_step = file_obj_step[self.flag_indicators_data]
                         file_event_step = file_obj_step[self.flag_event_data]
 
+                        if 'event_features' in list(file_event_step.keys()):
+                            file_event_step.pop('event_features', None)
+
                         if (file_indicators_step is not None) and (file_event_step is not None):
                             file_time_list.append(file_time_step)
 

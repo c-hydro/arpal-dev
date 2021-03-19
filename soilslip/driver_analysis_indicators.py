@@ -105,8 +105,8 @@ class DriverAnalysis:
         self.template_struct_ts = 'data_time_series'
         self.template_struct_obj = 'data_obj'
 
-        self.template_rain_accumulated = 'rain_accumulated_{:}'
-        self.template_rain_avg = 'rain_average_{:}'
+        self.template_rain_point_accumulated = 'rain_accumulated_{:}'
+        self.template_rain_point_avg = 'rain_average_{:}'
 
         self.template_sm_point_first = 'sm_value_first'
         self.template_sm_point_last = 'sm_value_last'
@@ -213,7 +213,13 @@ class DriverAnalysis:
             elif isinstance(data_obj, dict):
                 create_dict = False
             else:
-                logging.error(' ===> DataType not allowed')
+                logging.error(' ===> DataType not allowed in case of keys are null')
+                raise NotImplementedError('Case not implemented yet')
+        elif data_keys is not None:
+            if isinstance(data_obj, pd.Series):
+                create_dict = True
+            else:
+                logging.error(' ===> DataType not allowed in case of keys are not null')
                 raise NotImplementedError('Case not implemented yet')
         else:
             logging.error(' ===> Columns format not allowed')
@@ -524,13 +530,13 @@ class DriverAnalysis:
 
                         time_period, time_frequency = split_time_parts(time_interval_value)
 
-                        tag_rain_accumulated = self.template_rain_accumulated.format(time_interval_value)
+                        tag_rain_accumulated = self.template_rain_point_accumulated.format(time_interval_value)
                         # resample_df_sum = analysis_df[var_name].rolling(time_interval_value, min_periods=time_period).sum()
                         resample_df_sum = analysis_df[self.template_struct_ts].resample(time_interval_value,
                                                                                       label='right').sum()[:-1]
                         analysis_df[tag_rain_accumulated] = resample_df_sum
 
-                        tag_rain_avg = self.template_rain_avg.format(time_interval_value)
+                        tag_rain_avg = self.template_rain_point_avg.format(time_interval_value)
                         # resample_df_avg = analysis_df[var_name].rolling(time_interval_value, min_periods=time_period).mean()
                         resample_df_avg = analysis_df[self.template_struct_ts].resample(time_interval_value,
                                                                                       label='right').mean()[:-1]

@@ -10,11 +10,11 @@
     },
     "flags": {
       "__comment__": "running_mode values: organizer, analyzer, publisher",
-      "running_mode": ["publisher"],
+      "running_mode": ["analyzer", "publisher"],
       "updating_static_data": false,
       "updating_dynamic_ancillary_rain": false,
       "updating_dynamic_ancillary_sm": false,
-      "updating_dynamic_indicators": false,
+      "updating_dynamic_indicators": true,
       "updating_dynamic_scenarios": true
     },
     "ancillary": {
@@ -224,15 +224,15 @@
         },
         "scenarios_graph" : {
           "sm2event_graph": {
-            "folder_name": "/home/fabio/Desktop/PyCharm_Workspace/arpal-ws/soilslip/dynamic/outcome/scenarios_plots/{destination_scenarios_sub_path_time}",
+            "folder_name": "/home/fabio/Desktop/PyCharm_Workspace/arpal-ws/soilslip/dynamic/outcome/scenarios_graphs/{destination_scenarios_sub_path_time}",
             "file_name": "scenarios_sm_{destination_scenarios_datetime_from}_{destination_scenarios_datetime_to}_{alert_area_name}.tiff"
           },
           "rain2sm_graph": {
-            "folder_name": "/home/fabio/Desktop/PyCharm_Workspace/arpal-ws/soilslip/dynamic/outcome/scenarios_plots/{destination_scenarios_sub_path_time}",
+            "folder_name": "/home/fabio/Desktop/PyCharm_Workspace/arpal-ws/soilslip/dynamic/outcome/scenarios_graphs/{destination_scenarios_sub_path_time}",
             "file_name": "scenarios_rain2sm_{destination_scenarios_datetime_from}_{destination_scenarios_datetime_to}_{alert_area_name}_rain{var_rain}_sm{var_sm}_{season_name}.tiff"
           },
           "rain2event_graph": {
-            "folder_name": "/home/fabio/Desktop/PyCharm_Workspace/arpal-ws/soilslip/dynamic/outcome/scenarios_plots/{destination_scenarios_sub_path_time}",
+            "folder_name": "/home/fabio/Desktop/PyCharm_Workspace/arpal-ws/soilslip/dynamic/outcome/scenarios_graphs/{destination_scenarios_sub_path_time}",
             "file_name": "scenarios_rain_{destination_scenarios_datetime_from}_{destination_scenarios_datetime_to}_{alert_area_name}_rain{var_rain}_sm{var_sm}.tiff"
           }
         }
@@ -249,7 +249,7 @@
   },
   "time": {
     "time_now": null,
-    "time_period": 5,
+    "time_period": 8,
     "time_frequency": "D",
     "time_rounding": "D"
   }
