@@ -101,9 +101,12 @@ def read_file_binary(file_name, data_geo, scale_factor=10000):
 
 # -------------------------------------------------------------------------------------
 # Method to write file csv
-def write_file_csv(file_name, file_df, file_sep=',', file_header=True, file_index=True, file_format='%.3f'):
-    file_df.to_csv(file_name,
-                   sep=file_sep, header=file_header, index=file_index, float_format=file_format)
+def write_file_csv(file_name, file_data, file_sep=',', file_header=True, file_index=True, file_format='%.3f'):
+    if isinstance(file_data, pd.DataFrame):
+        file_data.to_csv(file_name, sep=file_sep, header=file_header, index=file_index, float_format=file_format)
+    else:
+        logging.error(' ===> Variable type for writing csv file not supported')
+        raise NotImplementedError('Case not implemented yet')
 # -------------------------------------------------------------------------------------
 
 

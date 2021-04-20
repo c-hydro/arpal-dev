@@ -15,9 +15,10 @@ import numpy as np
 import pandas as pd
 
 from lib_utils_generic import get_dict_nested_value, find_maximum_delta, split_time_parts
-from lib_utils_io import read_file_json, read_file_csv, read_obj, write_obj, create_darray_2d, create_dset, write_dset
+from lib_utils_io import read_file_json, read_file_csv, write_file_csv, read_obj, write_obj, create_darray_2d, \
+    create_dset, write_dset
 from lib_utils_system import fill_tags2string, make_folder
-from lib_analysis_interpolation_point import interp_point2grid
+from lib_utils_data import filter_rain_dataframe, interpolate_rain_dataframe
 from lib_utils_tiff import save_file_tiff
 
 # Debug
@@ -33,20 +34,28 @@ class DriverForcing:
     # Initialize class
     def __init__(self, time_step, src_dict, ancillary_dict, dst_dict, tmp_dict=None,
                  alg_ancillary=None, alg_template_tags=None,
-                 time_data=None, geo_data=None, group_data=None,
+                 time_data=None, geo_data_region=None, geo_data_weather_station=None, group_data=None,
                  flag_forcing_data='rain_data',
+                 flag_ancillary_data_map='rain_data_map', flag_ancillary_data_point='rain_data_point',
                  flag_ancillary_updating=True):
 
         self.time_step = pd.Timestamp(time_step)
 
         self.flag_forcing_data = flag_forcing_data
+        self.flag_ancillary_data_map = flag_ancillary_data_map
+        self.flag_ancillary_data_point = flag_ancillary_data_point
+
         self.file_name_tag = 'file_name'
         self.folder_name_tag = 'folder_name'
         self.region_tag = 'region'
 
+        self.alg_ancillary = alg_ancillary
         self.alg_template_tags = alg_template_tags
 
-        self.file_data_geo = geo_data[self.region_tag]
+        self.geo_data_region = geo_data_region
+        self.geo_data_weather_station = geo_data_weather_station
+
+        self.file_data_geo = self.geo_data_region[self.region_tag]
         self.structure_data_group = group_data
 
         search_period_list = []
@@ -89,11 +98,17 @@ class DriverForcing:
         self.file_path_src_list = self.collect_file_list(
             self.folder_name_src_raw, self.file_name_src_raw)
 
-        self.file_name_ancillary_raw = ancillary_dict[self.flag_forcing_data][self.file_name_tag]
-        self.folder_name_ancillary_raw = ancillary_dict[self.flag_forcing_data][self.folder_name_tag]
+        self.file_name_ancillary_map_raw = ancillary_dict[self.flag_ancillary_data_map][self.file_name_tag]
+        self.folder_name_ancillary_map_raw = ancillary_dict[self.flag_ancillary_data_map][self.folder_name_tag]
 
-        self.file_path_ancillary_list = self.collect_file_list(
-            self.folder_name_ancillary_raw, self.file_name_ancillary_raw)
+        self.file_path_ancillary_map_list = self.collect_file_list(
+            self.folder_name_ancillary_map_raw, self.file_name_ancillary_map_raw)
+
+        self.file_name_ancillary_point_raw = ancillary_dict[self.flag_ancillary_data_point][self.file_name_tag]
+        self.folder_name_ancillary_point_raw = ancillary_dict[self.flag_ancillary_data_point][self.folder_name_tag]
+
+        self.file_path_ancillary_point_list = self.collect_file_list(
+            self.folder_name_ancillary_point_raw, self.file_name_ancillary_point_raw)
 
         self.flag_ancillary_updating = flag_ancillary_updating
 
@@ -109,7 +124,8 @@ class DriverForcing:
         else:
             self.folder_tmp = None
 
-        self.file_path_processed = []
+        self.file_path_processed_map = []
+        self.file_path_processed_point = []
 
     # -------------------------------------------------------------------------------------
 
@@ -218,20 +234,25 @@ class DriverForcing:
 
         geoy_out_1d = self.file_data_geo['south_north'].values
         geox_out_1d = self.file_data_geo['west_east'].values
-        mask_2d = self.file_data_geo.values
+        mask_out_2d = self.file_data_geo.values
+
+        point_weather_section = self.geo_data_weather_station
 
         geox_out_2d, geoy_out_2d = np.meshgrid(geox_out_1d, geoy_out_1d)
 
-        for datetime_step, file_path_src, file_path_ancillary in zip(
-                self.time_range, self.file_path_src_list, self.file_path_ancillary_list):
+        for datetime_step, file_path_src, file_path_ancillary_map, file_path_ancillary_point in zip(
+                self.time_range, self.file_path_src_list,
+                self.file_path_ancillary_map_list, self.file_path_ancillary_point_list):
 
             logging.info(' -----> TimeStep: ' + str(datetime_step) + ' ... ')
 
             if self.flag_ancillary_updating:
-                if os.path.exists(file_path_ancillary):
-                    os.remove(file_path_ancillary)
+                if os.path.exists(file_path_ancillary_map):
+                    os.remove(file_path_ancillary_map)
+                if os.path.exists(file_path_ancillary_point):
+                    os.remove(file_path_ancillary_point)
 
-            if not os.path.exists(file_path_ancillary):
+            if not (os.path.exists(file_path_ancillary_map or os.path.exists(file_path_ancillary_point))):
 
                 if os.path.exists(file_path_src):
                     file_dframe = read_file_csv(file_path_src, datetime_step, file_header=self.columns_src,
@@ -259,31 +280,21 @@ class DriverForcing:
 
                 if file_dframe is not None:
 
-                    logging.info(' ------> Interpolate points to grid datasets ... ')
+                    logging.info(' ------> Interpolate points to map datasets ... ')
+                    map_out_2d = interpolate_rain_dataframe(file_dframe,
+                                                            mask_out_2d, geox_out_2d, geoy_out_2d,
+                                                            folder_tmp=self.folder_tmp)
+                    logging.info(' ------> Interpolate points to map datasets ... DONE')
 
-                    geox_in_1d = file_dframe['longitude'].values
-                    geoy_in_1d = file_dframe['latitude'].values
-                    data_in_1d = file_dframe['data'].values
+                    logging.info(' ------> Save map datasets ... ')
+                    folder_name_map, file_name_map = os.path.split(file_path_ancillary_map)
+                    make_folder(folder_name_map)
 
-                    data_out_2d = interp_point2grid(
-                        data_in_1d, geox_in_1d, geoy_in_1d, geox_out_2d, geoy_out_2d, epsg_code='4326',
-                        interp_no_data=-9999.0, interp_radius_x=0.2, interp_radius_y=0.2,
-                        interp_method='idw', var_name_data='values', var_name_geox='x', var_name_geoy='y',
-                        folder_tmp=self.folder_tmp)
-
-                    data_out_2d[mask_2d == 0] = np.nan
-
-                    logging.info(' ------> Interpolate points to grid datasets ... ')
-
-                    folder_name_dst, file_name_dst = os.path.split(file_path_ancillary)
-                    make_folder(folder_name_dst)
-
-                    logging.info(' ------> Save grid datasets ... ')
-                    if file_path_ancillary.endswith('.nc'):
+                    if file_path_ancillary_map.endswith('.nc'):
 
                         dset_out = create_dset(
-                            data_out_2d,
-                            mask_2d, geox_out_2d, geoy_out_2d,
+                            map_out_2d,
+                            mask_out_2d, geox_out_2d, geoy_out_2d,
                             var_data_time=datetime_step,
                             var_data_name=var_name,
                             var_geo_name='mask', var_data_attrs=None, var_geo_attrs=None,
@@ -292,25 +303,41 @@ class DriverForcing:
                             dims_order_2d=None, dims_order_3d=None)
 
                         write_dset(
-                            file_path_ancillary,
+                            file_path_ancillary_map,
                             dset_out, dset_mode='w', dset_engine='h5netcdf', dset_compression=0, dset_format='NETCDF4',
                             dim_key_time='time', no_data=-9999.0)
 
-                        logging.info(' ------> Save grid datasets ... DONE. [NETCDF]')
+                        logging.info(' ------> Save map datasets ... DONE. [NETCDF]')
 
-                    elif file_path_ancillary.endswith('.tiff'):
-
-                        save_file_tiff(file_path_ancillary, data_out_2d, geox_out_2d, geoy_out_2d,
+                    elif file_path_ancillary_map.endswith('.tiff'):
+                        ### error in saving ERROR 1: Only OGC WKT Projections supported for writing to GeoTIFF.  EPSG:4326 not supported.
+                        save_file_tiff(file_path_ancillary_map, map_out_2d, geox_out_2d, geoy_out_2d,
                                        file_metadata=self.file_metadata, file_epsg_code=self.file_epsg_code)
 
-                        logging.info(' ------> Save grid datasets ... DONE. [GEOTIFF]')
+                        logging.info(' ------> Save map datasets ... DONE. [GEOTIFF]')
 
                     else:
-                        logging.info(' ------> Save grid datasets ... FAILED')
+                        logging.info(' ------> Save map datasets ... FAILED')
                         logging.error(' ===> Filename format is not allowed')
                         raise NotImplementedError('Format is not implemented yet')
 
-                    self.file_path_processed.append(file_path_ancillary)
+                    self.file_path_processed_map.append(file_path_ancillary_map)
+
+                    logging.info(' ------> Save points datasets ... ')
+                    folder_name_point, file_name_point = os.path.split(file_path_ancillary_point)
+                    make_folder(folder_name_point)
+
+                    if file_path_ancillary_point.endswith('.csv'):
+
+                        write_file_csv(file_path_ancillary_point, file_dframe)
+                        logging.info(' ------> Save points datasets... DONE')
+
+                    else:
+                        logging.info(' ------> Save points datasets ... FAILED')
+                        logging.error(' ===> Filename format is not allowed')
+                        raise NotImplementedError('Format is not implemented yet')
+
+                    self.file_path_processed_point.append(file_path_ancillary_point)
 
                     logging.info(' -----> TimeStep: ' + str(datetime_step) + ' ... DONE')
 

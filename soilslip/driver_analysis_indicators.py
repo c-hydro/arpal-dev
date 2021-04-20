@@ -11,14 +11,16 @@ Version:       '1.0.0'
 # Library
 import logging
 import os
-import re
+
 import numpy as np
 import pandas as pd
 import xarray as xr
 
+from copy import deepcopy
+
 from lib_utils_generic import get_dict_nested_value, find_maximum_delta, split_time_parts
 from lib_utils_system import fill_tags2string, make_folder
-from lib_utils_io import write_obj, create_dset
+from lib_utils_io import read_obj, write_obj, create_dset
 from lib_utils_tiff import read_file_tiff
 
 from lib_analysis_interpolation_grid import interp_grid2map
@@ -34,12 +36,17 @@ class DriverAnalysis:
 
     # -------------------------------------------------------------------------------------
     # Initialize class
-    def __init__(self, time_step, ancillary_dict, dst_dict, file_list_rain, file_list_sm,
+    def __init__(self, time_step, ancillary_dict, dst_dict,
+                 file_list_rain_map, file_list_rain_point, file_list_sm,
                  alg_ancillary=None, alg_template_tags=None,
                  time_data=None,
-                 geo_data_region=None, geo_data_alert_area=None, index_data_alert_area=None,
+                 geo_data_region=None,
+                 geo_data_alert_area=None, index_data_alert_area=None,
+                 geo_data_weather_station=None,
                  group_data=None,
-                 flag_forcing_data_rain='rain_data', flag_forcing_data_sm='soil_moisture_data',
+                 flag_forcing_data_rain='rain_data',
+                 flag_ancillary_data_rain_map='rain_data_map', flag_ancillary_data_rain_point='rain_data_point',
+                 flag_forcing_data_sm='soil_moisture_data', flag_ancillary_data_sm='soil_moisture_data',
                  flag_indicators_time='time',
                  flag_indicators_event='indicators_event', flag_indicators_data='indicators_data',
                  flag_dest_updating=True):
@@ -54,18 +61,23 @@ class DriverAnalysis:
         self.region_tag = 'region'
 
         self.flag_forcing_data_rain = flag_forcing_data_rain
+        self.flag_ancillary_data_rain_map = flag_ancillary_data_rain_map
+        self.flag_ancillary_data_rain_point = flag_ancillary_data_rain_point
         self.flag_forcing_data_sm = flag_forcing_data_sm
+        self.flag_ancillary_data_sm = flag_ancillary_data_sm
 
         self.flag_indicators_time = flag_indicators_time
         self.flag_indicators_event = flag_indicators_event
         self.flag_indicators_data = flag_indicators_data
 
-        self.file_list_rain = file_list_rain
+        self.file_list_rain_map = file_list_rain_map
+        self.file_list_rain_point = file_list_rain_point
         self.file_list_sm = file_list_sm
 
         self.geo_data_region = geo_data_region[self.region_tag]
         self.geo_data_alert_area = geo_data_alert_area
         self.index_data_alert_area = index_data_alert_area
+        self.geo_data_weather_station = geo_data_weather_station
 
         self.alg_template_tags = alg_template_tags
 
@@ -77,10 +89,12 @@ class DriverAnalysis:
 
         self.structure_data_group = group_data
 
-        self.file_name_ancillary_rain_raw = ancillary_dict[self.flag_forcing_data_rain][self.file_name_tag]
-        self.folder_name_ancillary_rain_raw = ancillary_dict[self.flag_forcing_data_rain][self.folder_name_tag]
-        self.file_name_ancillary_sm_raw = ancillary_dict[self.flag_forcing_data_sm][self.file_name_tag]
-        self.folder_name_ancillary_sm_raw = ancillary_dict[self.flag_forcing_data_sm][self.folder_name_tag]
+        self.file_name_ancillary_rain_map_raw = ancillary_dict[self.flag_ancillary_data_rain_map][self.file_name_tag]
+        self.folder_name_ancillary_rain_map_raw = ancillary_dict[self.flag_ancillary_data_rain_map][self.folder_name_tag]
+        self.file_name_ancillary_rain_point_raw = ancillary_dict[self.flag_ancillary_data_rain_point][self.file_name_tag]
+        self.folder_name_ancillary_rain_point_raw = ancillary_dict[self.flag_ancillary_data_rain_point][self.folder_name_tag]
+        self.file_name_ancillary_sm_raw = ancillary_dict[self.flag_ancillary_data_sm][self.file_name_tag]
+        self.folder_name_ancillary_sm_raw = ancillary_dict[self.flag_ancillary_data_sm][self.folder_name_tag]
 
         self.file_name_dest_indicators_raw = dst_dict[self.flag_indicators_data][self.file_name_tag]
         self.folder_name_dest_indicators_raw = dst_dict[self.flag_indicators_data][self.folder_name_tag]
@@ -107,6 +121,7 @@ class DriverAnalysis:
 
         self.template_rain_point_accumulated = 'rain_accumulated_{:}'
         self.template_rain_point_avg = 'rain_average_{:}'
+        self.template_rain_point_peak = 'rain_peak_{:}'
 
         self.template_sm_point_first = 'sm_value_first'
         self.template_sm_point_last = 'sm_value_last'
@@ -115,11 +130,12 @@ class DriverAnalysis:
 
         self.analysis_event_undefined = {'event_n': 0, 'event_threshold': 'white', 'event_index': 0}
 
+        self.tag_sep = ':'
     # -------------------------------------------------------------------------------------
 
     # -------------------------------------------------------------------------------------
     # Method to dump analysis
-    def save_analysis(self, group_analysis_sm, group_analysis_rain, group_soilslip):
+    def save_analysis(self, group_analysis_sm, group_analysis_rain_map, group_analysis_rain_point, group_soilslip):
 
         logging.info(' ----> Save analysis [' + str(self.time_step) + '] ... ')
 
@@ -144,10 +160,14 @@ class DriverAnalysis:
                     group_analysis_sm_select = group_analysis_sm[group_data_key][self.template_struct_obj]
                 else:
                     group_analysis_sm_select = None
-                if group_analysis_rain[group_data_key] is not None:
-                    group_analysis_rain_select = group_analysis_rain[group_data_key][self.template_struct_obj]
+                if group_analysis_rain_map[group_data_key] is not None:
+                    group_analysis_rain_map_select = group_analysis_rain_map[group_data_key][self.template_struct_obj]
                 else:
-                    group_analysis_rain_select = None
+                    group_analysis_rain_map_select = None
+                if group_analysis_rain_point[group_data_key] is not None:
+                    group_analysis_rain_point_select = group_analysis_rain_point[group_data_key]
+                else:
+                    group_analysis_rain_point_select = None
 
                 if group_analysis_sm_select is not None:
                     if time_step in list(group_soilslip_select.index):
@@ -157,16 +177,21 @@ class DriverAnalysis:
                 else:
                     soilslip_select = None
 
-                if (group_analysis_sm_select is not None) and (group_analysis_rain_select is not None):
+                if (group_analysis_sm_select is not None) and (
+                        (group_analysis_rain_map_select is not None) and (group_analysis_rain_point_select is not None)):
                     analysis_sm = self.unpack_analysis(group_analysis_sm_select)
-                    analysis_rain = self.unpack_analysis(group_analysis_rain_select)
-                    analysis_data = {**analysis_sm, **analysis_rain}
+                    analysis_rain_map = self.unpack_analysis(group_analysis_rain_map_select)
+                    analysis_rain_point = self.unpack_analysis(group_analysis_rain_point_select)
+                    analysis_data = {**analysis_sm, **analysis_rain_map, **analysis_rain_point}
                 else:
                     analysis_data = None
-                    if (group_analysis_sm_select is None) and (group_analysis_rain_select is not None):
+                    if (group_analysis_sm_select is None) and (
+                            (group_analysis_rain_map_select is not None) and (group_analysis_rain_point_select is not None)):
                         logging.warning(' ===> SoilMoisture datasets is undefined')
-                    elif (group_analysis_rain_select is None) and (group_analysis_sm_select is not None):
-                        logging.warning(' ===> Rain datasets is undefined')
+                    elif (group_analysis_rain_map_select is None) and (group_analysis_sm_select is not None):
+                        logging.warning(' ===> Rain map datasets is undefined')
+                    elif (group_analysis_rain_point_select is None) and (group_analysis_sm_select is not None):
+                        logging.warning(' ===> Rain point datasets is undefined')
                     else:
                         logging.warning(' ===> Rain and SoilMoisture datasets are undefined')
 
@@ -417,10 +442,10 @@ class DriverAnalysis:
     # -------------------------------------------------------------------------------------
 
     # -------------------------------------------------------------------------------------
-    # Method to organize analysis for rain datasets
-    def organize_analysis_rain(self, var_name='rain'):
+    # Method to organize analysis for rain map datasets
+    def organize_analysis_rain_map(self, var_name='rain'):
 
-        logging.info(' ----> Compute rain analysis [' + str(self.time_step) + '] ... ')
+        logging.info(' ----> Compute rain analysis map [' + str(self.time_step) + '] ... ')
 
         time_step = self.time_step
         geo_data_region = self.geo_data_region
@@ -464,12 +489,8 @@ class DriverAnalysis:
 
                 time_range = self.compute_time_range(time_step, time_period_max, time_period_type, time_frequency_max)
 
-                # time_range = pd.date_range(start=time_step, periods=time_period_max, freq=time_frequency_max)
-                # time_interval = self.compute_time_interval(time_step, time_delta_max,
-                # group_data_items['rain_search_period'])
-
                 file_list = collect_file_list(
-                    time_range, self.folder_name_ancillary_rain_raw, self.file_name_ancillary_rain_raw,
+                    time_range, self.folder_name_ancillary_rain_map_raw, self.file_name_ancillary_rain_map_raw,
                     self.alg_template_tags)
 
                 file_analysis = True
@@ -532,22 +553,20 @@ class DriverAnalysis:
 
                         tag_rain_accumulated = self.template_rain_point_accumulated.format(time_interval_value)
                         # resample_df_sum = analysis_df[var_name].rolling(time_interval_value, min_periods=time_period).sum()
-                        resample_df_sum = analysis_df[self.template_struct_ts].resample(time_interval_value,
-                                                                                      label='right').sum()[:-1]
+                        resample_df_sum = analysis_df[self.template_struct_ts].resample(
+                            time_interval_value, label='right').sum()[:-1]
                         analysis_df[tag_rain_accumulated] = resample_df_sum
 
                         tag_rain_avg = self.template_rain_point_avg.format(time_interval_value)
                         # resample_df_avg = analysis_df[var_name].rolling(time_interval_value, min_periods=time_period).mean()
-                        resample_df_avg = analysis_df[self.template_struct_ts].resample(time_interval_value,
-                                                                                      label='right').mean()[:-1]
+                        resample_df_avg = analysis_df[self.template_struct_ts].resample(
+                            time_interval_value, label='right').mean()[:-1]
                         analysis_df[tag_rain_avg] = resample_df_avg
 
                         analysis_obj[tag_rain_accumulated] = float(resample_df_sum.max())
                         analysis_obj[tag_rain_avg] = float(resample_df_avg.max())
 
                         logging.info(' ------> Compute sum and avg values for ' + time_interval_value + ' ... DONE')
-
-                    #analysis_ts = analysis_df.max()
 
                     analysis_collections = {self.template_struct_ts: analysis_df, self.template_struct_obj: analysis_obj}
 
@@ -564,7 +583,158 @@ class DriverAnalysis:
 
                 logging.info(' -----> Alert Area ' + group_data_key + ' ... SKIPPED. Analysis file created previously')
 
-        logging.info(' ----> Compute rain analysis [' + str(self.time_step) + '] ... DONE')
+        logging.info(' ----> Compute rain analysis map [' + str(self.time_step) + '] ... DONE')
+
+        return group_analysis
+
+    # -------------------------------------------------------------------------------------
+
+    # -------------------------------------------------------------------------------------
+    # Method to organize analysis for rain map datasets
+    def organize_analysis_rain_point(self, var_name='rain'):
+
+        logging.info(' ----> Compute rain analysis point [' + str(self.time_step) + '] ... ')
+
+        time_step = self.time_step
+
+        group_data_alert_area = self.structure_data_group
+        geo_data_weather_station = self.geo_data_weather_station
+
+        group_analysis = {}
+        for (group_data_key, group_data_items), geo_data_obj in zip(group_data_alert_area.items(),
+                                                                    geo_data_weather_station.values()):
+
+            logging.info(' -----> Alert Area ' + group_data_key + '  ... ')
+
+            file_path_dest = collect_file_list(
+                time_step, self.folder_name_dest_indicators_raw, self.file_name_dest_indicators_raw,
+                self.alg_template_tags, alert_area_name=group_data_key)[0]
+
+            if not os.path.exists(file_path_dest):
+
+                # Point located in the selected area
+                points_code_aa = list(geo_data_obj.keys())
+
+                # Points located both in the selected area and in neighbours areas
+                points_code_extended = []
+                for point_code_ref, point_code_df in geo_data_obj.items():
+                    point_code_tmp = point_code_df['code'].values
+                    points_code_extended.extend(point_code_tmp)
+                points_code_extended = list(set(points_code_extended))
+
+                if set(points_code_aa) != set(points_code_extended):
+                    logging.info(' ------> Some points are located in the neighbours areas')
+
+                time_delta_max = find_maximum_delta(group_data_items['rain_datasets']['search_period'])
+                time_period_type = group_data_items['rain_datasets']['search_type'][0]
+                time_period_max, time_frequency_max = split_time_parts(time_delta_max)
+
+                time_range = self.compute_time_range(time_step, time_period_max, time_period_type, time_frequency_max)
+
+                file_list = collect_file_list(
+                    time_range, self.folder_name_ancillary_rain_point_raw, self.file_name_ancillary_rain_point_raw,
+                    self.alg_template_tags)
+
+                file_analysis = True
+                for file_step in file_list:
+                    if not os.path.exists(file_step):
+                        logging.warning(' ===> Filename ' + file_step + ' does not exist')
+                        file_analysis = False
+                        break
+
+                if file_analysis:
+
+                    if file_list[0].endswith('.csv'):
+
+                        if file_list.__len__() > 1:
+
+                            point_collections = None
+                            point_time = []
+                            for file_id, (file_step, timestamp_step) in enumerate(zip(file_list, time_range)):
+
+                                logging.info(' ------> Timestep ' + str(timestamp_step) + ' ... ')
+
+                                point_obj_raw = pd.read_csv(file_step)
+
+                                point_obj_timestamp = pd.Timestamp(list(set(point_obj_raw['time'].values))[0])
+
+                                point_obj_aa = point_obj_raw[point_obj_raw['code'].isin(points_code_extended)]
+                                point_obj_aa = point_obj_aa.drop(columns=['time', 'index', 'name',
+                                                                          'longitude', 'latitude'])
+
+                                point_obj_aa = point_obj_aa.set_index('code')
+                                point_obj_aa.index.name = 'code'
+
+                                if point_collections is None:
+                                    point_collections = deepcopy(point_obj_aa)
+                                else:
+                                    point_collections = pd.concat([point_collections, point_obj_aa],
+                                                                  1, ignore_index=True)
+                                point_time.append(point_obj_timestamp)
+
+                                logging.info(' ------> Timestep ' + str(timestamp_step) + ' ... DONE')
+
+                            point_values = point_collections.values.T
+                            point_code = point_collections.index.values
+                            point_datetime_idx = pd.DatetimeIndex(point_time)
+
+                            point_df = pd.DataFrame(data=point_values, index=point_time, columns=point_code)
+
+                        else:
+                            logging.error(' ===> Length of file list is not allowed')
+                            raise NotImplementedError('Case is not implemented yet')
+                    else:
+                        logging.error(' ===> Filename format is not allowed')
+                        raise NotImplementedError('Format is not implemented yet')
+
+                    analysis_obj = {}
+                    for geo_key, geo_neighbour in geo_data_obj.items():
+                        logging.info(' ------> Weather Station ' + geo_key + ' ... ')
+
+                        geo_codes_nb = list(geo_neighbour['code'])
+                        geo_codes_filter = list(set(geo_codes_nb).intersection(list(point_df.columns)))
+
+                        for time_interval_value in group_data_items['rain_datasets']['search_period']:
+
+                            logging.info(' -------> Compute peak for ' + time_interval_value + ' ... ')
+
+                            tag_rain_peak = self.template_rain_point_peak.format(time_interval_value)
+
+                            point_df_select = point_df[geo_codes_filter]
+                            point_df_resample = point_df_select.resample(time_interval_value, label='right').max()[:-1]
+                            point_max_value = point_df_resample.to_numpy().max()
+
+                            if tag_rain_peak not in list(analysis_obj.keys()):
+                                analysis_obj[tag_rain_peak] = {}
+                                analysis_obj[tag_rain_peak][geo_key] = point_max_value
+                            else:
+                                point_max_tmp = analysis_obj[tag_rain_peak]
+                                point_max_tmp[geo_key] = point_max_value
+                                analysis_obj[tag_rain_peak] = point_max_tmp
+
+                            logging.info(' -------> Compute peak for ' + time_interval_value + ' ... DONE')
+
+                        logging.info(' ------> Weather Station ' + geo_key + ' ... DONE')
+
+                    peak_obj = {}
+                    for analysis_time, analysis_dataset in analysis_obj.items():
+                        value_max = pd.Series(analysis_dataset).max()
+                        peak_obj[analysis_time] = value_max
+
+                    logging.info(' -----> Alert Area ' + group_data_key + ' ... DONE')
+
+                else:
+                    peak_obj = None
+                    logging.warning(' ===> Rain data are not available')
+                    logging.info(' -----> Alert Area ' + group_data_key + ' ... SKIPPED. Datasets are not available.')
+
+                group_analysis[group_data_key] = peak_obj
+
+            else:
+
+                logging.info(' -----> Alert Area ' + group_data_key + ' ... SKIPPED. Analysis file created previously')
+
+        logging.info(' ----> Compute rain analysis point [' + str(self.time_step) + '] ... DONE')
 
         return group_analysis
 

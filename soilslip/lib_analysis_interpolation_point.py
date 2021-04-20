@@ -90,6 +90,7 @@ def interp_point2grid(data_in_1d, geox_in_1d, geoy_in_1d, geox_out_2d, geoy_out_
                     interp_option + ' -outsize ' + str(geo_out_rows) + ' ' + str(geo_out_cols) +
                     ' -of GTiff -ot Float32 -l ' + var_name_layer + ' ' +
                     file_name_vrt + ' ' + file_name_tiff + ' --config GDAL_NUM_THREADS ALL_CPUS')
+    # os.system(line_command)
 
     # Execute algorithm
     [std_out, std_err, std_exit] = exec_process(command_line=line_command, command_path=folder_tmp)

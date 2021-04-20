@@ -258,6 +258,8 @@ class DriverGeoGrid:
     # Method to compute index data of alert area
     def compute_index_data_alert_area(self):
 
+        logging.info(' -----> Compute alert area index ... ')
+
         file_path_alert_area_index = self.file_path_alert_area_index_obj
 
         geoy_region_1d = self.dset_geo_region[self.region_tag]['south_north'].values
@@ -268,6 +270,8 @@ class DriverGeoGrid:
 
         dset_index_alert_area = {}
         for group_key, group_data in self.structure_data_group.items():
+
+            logging.info(' ------> Alert area ' + group_key + ' ... ')
 
             file_path = file_path_alert_area_index[group_key]
             geo_alert_area = dset_geo_alert_area[group_key]
@@ -291,10 +295,15 @@ class DriverGeoGrid:
 
                 write_obj(file_path, index_alert_area_2d)
 
+                logging.info(' ------> Alert area ' + group_key + ' ... DONE')
+
             else:
                 index_alert_area_2d = read_obj(file_path)
+                logging.info(' ------> Alert area ' + group_key + ' ... LOADED. Datasets was previously computed.')
 
             dset_index_alert_area[group_key] = index_alert_area_2d
+
+        logging.info(' -----> Compute alert area index ... DONE')
 
         return dset_index_alert_area
 

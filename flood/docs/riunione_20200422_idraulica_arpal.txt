@@ -1,0 +1,34 @@
+# Riunione idraulica per ARPAL
+
+# Traduzione codice matlab --> python
+
+2 script
+
+1) parte della mappe di hazard a cert tempi di ritorno e fa le interpolazione in modo intelligente per avare un anno di mappe di hazards
+è un post-preprocessing 
+
+2) prende i valori delle portate puntuali --> regionalizzazione va vedere quale è il tempo di ritorno
+
+
+
+2)
+
+1) script flavio per aree di competenza fatte sulle aree dell'idraulico
+associare i punti dove abbiamo le portate con le aree di competenza
+
+primo tempo di ritorno prima area di competenza
+ogni rastar ha un indice pari al codice della sezione 
+
+# NOTA:
+mappe delle aree di competenza deve essere sulla griglia delle mappe di hazard!
+
+# Forzanti:
+
+sulla 65 /home/idraulica/por_liguria/realtime_scenario
+
+per ogni bacino telemac / hazard maps
+# Entella:
+/home/idraulica/POR_Liguria/realtime_scenario/hazmap/Entella
+
+
+

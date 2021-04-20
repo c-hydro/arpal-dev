@@ -2,6 +2,7 @@
 # Libraries
 import logging
 import numpy as np
+import pandas as pd
 
 import matplotlib.pylab as plt
 logging.getLogger("matplotlib").setLevel(logging.WARNING)
@@ -12,7 +13,7 @@ logging.getLogger("PIL").setLevel(logging.WARNING)
 # -------------------------------------------------------------------------------------
 # Method to plot scenarios against event
 def plot_scenarios_rain2sm(file_data, file_path,
-                           var_x='soil_moisture', var_y='rain', var_z='event_index',
+                           var_x='soil_moisture', var_y='rain', var_z='event_index', var_time='time',
                            var_x_limits=None, var_y_limits=None, var_z_limits=None,
                            event_n_min=0, event_n_max=None, event_label=True, season_label='NA',
                            figure_dpi=120, extra_args=None,
@@ -26,14 +27,14 @@ def plot_scenarios_rain2sm(file_data, file_path,
         var_z_limits = [0, 4]
 
     # Get datasets
-    var_time = list(file_data[var_x].index)
+    var_time = list(file_data[var_time].values)
     var_data_x = file_data[var_x].values
     var_data_z = file_data[var_z].values
 
     if var_time.__len__() > 0:
 
-        var_time_from_ref = var_time[-1].strftime('%Y-%m-%d')
-        var_time_to_ref = var_time[0].strftime('%Y-%m-%d')
+        var_time_from_ref = pd.Timestamp(var_time[-1]).strftime('%Y-%m-%d')
+        var_time_to_ref = pd.Timestamp(var_time[0]).strftime('%Y-%m-%d')
 
         var_p95_x = np.percentile(var_data_x, 95)
         var_p99_x = np.percentile(var_data_x, 99)
@@ -85,6 +86,8 @@ def plot_scenarios_rain2sm(file_data, file_path,
 
             colors = {0: 'grey', 1: 'green', 2: 'yellow', 3: 'orange', 4: 'red'}
             for t, x, y, z in zip(var_time, var_data_x, var_data_y, var_data_z):
+
+                t = pd.Timestamp(t)
 
                 if y >= 0:
                     color = colors[z]
