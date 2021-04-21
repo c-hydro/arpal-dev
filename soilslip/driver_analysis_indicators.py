@@ -694,27 +694,30 @@ class DriverAnalysis:
                         geo_codes_nb = list(geo_neighbour['code'])
                         geo_codes_filter = list(set(geo_codes_nb).intersection(list(point_df.columns)))
 
-                        for time_interval_value in group_data_items['rain_datasets']['search_period']:
+                        if geo_codes_filter.__len__() > 0:
+                            for time_interval_value in group_data_items['rain_datasets']['search_period']:
 
-                            logging.info(' -------> Compute peak for ' + time_interval_value + ' ... ')
+                                logging.info(' -------> Compute peak for ' + time_interval_value + ' ... ')
 
-                            tag_rain_peak = self.template_rain_point_peak.format(time_interval_value)
+                                tag_rain_peak = self.template_rain_point_peak.format(time_interval_value)
 
-                            point_df_select = point_df[geo_codes_filter]
-                            point_df_resample = point_df_select.resample(time_interval_value, label='right').max()[:-1]
-                            point_max_value = point_df_resample.to_numpy().max()
+                                point_df_select = point_df[geo_codes_filter]
+                                point_df_resample = point_df_select.resample(time_interval_value, label='right').max()[:-1]
+                                point_max_value = point_df_resample.to_numpy().max()
 
-                            if tag_rain_peak not in list(analysis_obj.keys()):
-                                analysis_obj[tag_rain_peak] = {}
-                                analysis_obj[tag_rain_peak][geo_key] = point_max_value
-                            else:
-                                point_max_tmp = analysis_obj[tag_rain_peak]
-                                point_max_tmp[geo_key] = point_max_value
-                                analysis_obj[tag_rain_peak] = point_max_tmp
+                                if tag_rain_peak not in list(analysis_obj.keys()):
+                                    analysis_obj[tag_rain_peak] = {}
+                                    analysis_obj[tag_rain_peak][geo_key] = point_max_value
+                                else:
+                                    point_max_tmp = analysis_obj[tag_rain_peak]
+                                    point_max_tmp[geo_key] = point_max_value
+                                    analysis_obj[tag_rain_peak] = point_max_tmp
 
-                            logging.info(' -------> Compute peak for ' + time_interval_value + ' ... DONE')
+                                logging.info(' -------> Compute peak for ' + time_interval_value + ' ... DONE')
 
-                        logging.info(' ------> Weather Station ' + geo_key + ' ... DONE')
+                            logging.info(' ------> Weather Station ' + geo_key + ' ... DONE')
+                        else:
+                            logging.info(' ------> Weather Station ' + geo_key + ' ... SKIPPED. Datasets are null')
 
                     peak_obj = {}
                     for analysis_time, analysis_dataset in analysis_obj.items():

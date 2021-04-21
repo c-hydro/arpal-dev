@@ -1,7 +1,6 @@
 # -------------------------------------------------------------------------------------
 # Libraries
 import logging
-import warnings
 import os
 import ogr
 import gdal
@@ -9,23 +8,19 @@ import gdal
 import osr
 
 import numpy as np
-import geopandas as gpd
 import rasterio
+from rasterio.crs import CRS
 from rasterio import features
+
 from osgeo import ogr
 
-from shapely.geometry import shape
-
 from lib_utils_io import create_filename_tmp, create_darray_2d, write_file_tif
-
-# Default settings
-proj_default_wkt='GEOGCS["WGS 84",DATUM["WGS_1984",SPHEROID["WGS 84",6378137,298.257223563,AUTHORITY["EPSG","7030"]],AUTHORITY["EPSG","6326"]],PRIMEM["Greenwich",0,AUTHORITY["EPSG","8901"]],UNIT["degree",0.0174532925199433,AUTHORITY["EPSG","9122"]],AUTHORITY["EPSG","4326"]]'
 # -------------------------------------------------------------------------------------
 
 
 # -------------------------------------------------------------------------------------
 # Method to save data values in geotiff format
-def save_file_tiff(file_name, file_data, file_geo_x, file_geo_y, file_metadata=None, file_epsg_code='EPSG:32632'):
+def save_file_tiff(file_name, file_data, file_geo_x, file_geo_y, file_metadata=None, file_epsg_code=None):
 
     if file_metadata is None:
         file_metadata = {'description': 'data'}
@@ -44,8 +39,17 @@ def save_file_tiff(file_name, file_data, file_geo_x, file_geo_y, file_metadata=N
     if not isinstance(file_data, list):
         file_data = [file_data]
 
+    if isinstance(file_epsg_code, str):
+        file_crs = CRS.from_string(file_epsg_code)
+        file_wkt = file_crs.to_wkt()
+    elif (file_epsg_code is None) or (not isinstance(file_epsg_code, str)):
+        logging.warning(' ===> Geographical projection is not defined in string format. '
+                        ' Will be used the Default projection EPSG:4326')
+        file_crs = CRS.from_string('EPSG:4326')
+        file_wkt = file_crs.to_wkt()
+
     write_file_tif(file_name, file_data,
-                   file_data_width, file_data_height, file_data_transform, file_epsg_code,
+                   file_data_width, file_data_height, file_data_transform, file_wkt,
                    file_metadata=file_metadata)
 
 # -------------------------------------------------------------------------------------

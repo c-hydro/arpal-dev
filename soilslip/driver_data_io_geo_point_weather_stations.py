@@ -51,6 +51,12 @@ class DriverGeoPoint:
         self.point_alert_area_tree_tag = 'alert_area_tree'
         self.grid_vector_tag = 'alert_area_vector'
 
+        self.point_code_tag = 'code'
+        self.point_name_tag = 'name'
+        self.point_longitude_tag = 'longitude'
+        self.point_latitude_tag = 'latitude'
+        self.point_alert_area_tag = 'alert_area'
+
         self.group_data = group_data
         self.alg_template_tags = alg_template_tags
 
@@ -88,21 +94,18 @@ class DriverGeoPoint:
             if os.path.exists(self.file_path_point_registry_dst):
                 os.remove(self.file_path_point_registry_dst)
 
+        logging.info(' -----> Define geo points registry ... ')
         if not os.path.exists(self.file_path_point_registry_dst):
             df_geo_point = self.dset_geo_point = self.read_geo_point()
             self.df_geo_point = self.join_geo_point2grid(df_geo_point)
             make_folder(self.folder_name_point_registry_dst)
             self.df_geo_point.to_csv(self.file_path_point_registry_dst)
+            logging.info(' -----> Define geo points registry ... DONE')
         else:
             self.df_geo_point = pd.read_csv(self.file_path_point_registry_dst)
+            logging.info(' -----> Define geo points registry ... LOADED. Datasets was previously computed.')
 
         self.tag_sep = ':'
-
-        self.point_code_tag = 'code'
-        self.point_name_tag = 'name'
-        self.point_longitude_tag = 'longitude'
-        self.point_latitude_tag = 'latitude'
-        self.point_alert_area_tag = 'alert_area'
 
     # -------------------------------------------------------------------------------------
 
@@ -203,10 +206,11 @@ class DriverGeoPoint:
     def read_geo_point(self):
 
         # Read geo points db
-        if os.path.exists(self.file_path_point_src):
-            point_dframe = get_file_point(self.file_path_point_src, file_sep=';')
+        if os.path.exists(self.file_path_point_registry_src):
+            point_dframe = get_file_point(self.file_path_point_registry_src, file_sep=';')
         else:
-            logging.error(' ===> Weather stations database file "' + self.file_path_point_src + '" is not available')
+            logging.error(' ===> Weather stations database file "' +
+                          self.file_path_point_registry_src + '" is not available')
             raise IOError('File not found!')
 
         # Adjust geo points dataframe
@@ -279,7 +283,7 @@ class DriverGeoPoint:
                     weather_stations_collections[aa_point] = {}
                 weather_stations_collections[aa_point][code_point] = coord_dframe
 
-            folder_name, file_name = os.path.exists(file_path_point)
+            folder_name, file_name = os.path.split(file_path_point)
             make_folder(folder_name)
             write_obj(file_path_point, weather_stations_collections)
 

@@ -23,6 +23,9 @@ logging.getLogger('rasterio').setLevel(logging.WARNING)
 
 # Debug
 import matplotlib.pylab as plt
+
+# Default settings
+proj_default_wkt='GEOGCS["WGS 84",DATUM["WGS_1984",SPHEROID["WGS 84",6378137,298.257223563,AUTHORITY["EPSG","7030"]],AUTHORITY["EPSG","6326"]],PRIMEM["Greenwich",0,AUTHORITY["EPSG","8901"]],UNIT["degree",0.0174532925199433,AUTHORITY["EPSG","9122"]],AUTHORITY["EPSG","4326"]]'
 # -------------------------------------------------------------------------------------
 
 
@@ -128,7 +131,7 @@ def convert_file_csv2df(file_name):
 # Method to read file csv
 def read_file_csv(file_name, file_time=None, file_header=None, file_format=None,
                   file_sep=',', file_skiprows=1, file_time_format='%Y%m%d%H%M',
-                  scale_factor_longitude=100000, scale_factor_latitude=100000, scale_factor_data=0.1):
+                  scale_factor_longitude=10, scale_factor_latitude=10, scale_factor_data=1):
 
     if file_header is None:
         file_header = ['code', 'name', 'longitude', 'latitude', 'time', 'data']

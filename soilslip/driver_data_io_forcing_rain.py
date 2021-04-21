@@ -82,6 +82,7 @@ class DriverForcing:
         self.file_columns_sep = ';'
         self.file_scale_factor_longitude = 10
         self.file_scale_factor_latitude = 10
+        self.file_scale_factor_rain = 1
         self.file_metadata = {'description': 'rain'}
         self.file_epsg_code = 'EPSG:4326'
 
@@ -218,7 +219,9 @@ class DriverForcing:
         file_path_src_def = os.path.join(folder_name_src_def, file_name_src_def)
         if os.path.exists(file_path_src_def):
             file_dframe = read_file_csv(file_path_src_def, file_header=self.columns_src,
-                                        scale_factor_longitude=10, scale_factor_latitude=10)
+                                        scale_factor_longitude=self.file_scale_factor_longitude,
+                                        scale_factor_latitude=self.file_scale_factor_latitude,
+                                        scale_factor_data=self.file_scale_factor_rain)
         else:
             file_dframe = None
             logging.warning(' ===> File datasets of rain weather stations is not available.')
@@ -258,7 +261,8 @@ class DriverForcing:
                     file_dframe = read_file_csv(file_path_src, datetime_step, file_header=self.columns_src,
                                                 file_sep=self.file_columns_sep,
                                                 scale_factor_longitude=self.file_scale_factor_longitude,
-                                                scale_factor_latitude=self.file_scale_factor_latitude)
+                                                scale_factor_latitude=self.file_scale_factor_latitude,
+                                                scale_factor_data=self.file_scale_factor_rain)
 
                     # Filter data using variable limits (if defined)
                     if var_min is not None:

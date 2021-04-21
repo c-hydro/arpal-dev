@@ -1,0 +1,8 @@
+<OGRVRTDataSource>
+    <OGRVRTLayer name="temporary_20200623-151722_325104_375">
+        <SrcDataSource>/home/fabio/Desktop/PyCharm_Workspace/arpal-master/soilslip/cmp/temporary_20200623-151722_325104_375.csv</SrcDataSource>
+    <GeometryType>wkbPoint</GeometryType>
+    <LayerSRS>WGS84</LayerSRS>
+    <GeometryField encoding="PointFromColumns" x="x" y="y" z="values"/>
+    </OGRVRTLayer>
+</OGRVRTDataSource>

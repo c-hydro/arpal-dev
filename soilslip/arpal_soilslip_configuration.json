@@ -10,9 +10,9 @@
     },
     "flags": {
       "__comment__": "running_mode values: organizer, analyzer, publisher",
-      "running_mode": ["publisher"],
+      "running_mode": ["organizer", "analyzer", "publisher"],
       "updating_static_data": false,
-      "updating_dynamic_ancillary_rain": true,
+      "updating_dynamic_ancillary_rain": false,
       "updating_dynamic_ancillary_sm": false,
       "updating_dynamic_indicators": true,
       "updating_dynamic_scenarios": false
@@ -22,7 +22,7 @@
         "/home/fabio/Documents/Work_Area/Code_Development/Library/gdal-3.2.1/lib/",
         "/home/fabio/Documents/Work_Area/Code_Development/Library/proj-8.0.0/lib/"
       ],
-      "PATH2" : [
+      "PATH" : [
         "/home/fabio/Documents/Work_Area/Code_Development/Library/gdal-3.2.1/bin/",
         "/home/fabio/Documents/Work_Area/Code_Development/Library/proj-8.0.0/bin/"
       ],
@@ -289,7 +289,7 @@
     "time_period": 3000,
     "time_frequency": "D",
     "time_rounding": "D",
-    "time_start": "2019-12-29 00:00",
-    "time_end": "2019-12-31 00:00"
+    "time_start": "2018-11-05 00:00",
+    "time_end": "2018-11-06 00:00"
   }
 }
